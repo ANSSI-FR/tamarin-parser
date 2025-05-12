@@ -1,0 +1,20 @@
+set -x
+tamarin-prover --prove 979826_basic.spthy 2>/dev/null > 979826_basic_results.spthy
+tamarin-prover --prove 979826_leak_always_0.spthy 2>/dev/null > 979826_leak_always_0_results.spthy
+tamarin-prover --prove 979826_leak_always_1.spthy 2>/dev/null > 979826_leak_always_1_results.spthy
+tamarin-prover --prove 979826_leak_always_2.spthy 2>/dev/null > 979826_leak_always_2_results.spthy
+tamarin-prover --prove 979826_leak_always_3.spthy 2>/dev/null > 979826_leak_always_3_results.spthy
+tamarin-prover --prove 979826_reuse_always_0.spthy 2>/dev/null > 979826_reuse_always_0_results.spthy
+tamarin-prover --prove 979826_reuse_always_1.spthy 2>/dev/null > 979826_reuse_always_1_results.spthy
+tamarin-prover --prove 979826_reuse_always_2.spthy 2>/dev/null > 979826_reuse_always_2_results.spthy
+tamarin-prover --prove 979826_reuse_always_3.spthy 2>/dev/null > 979826_reuse_always_3_results.spthy
+tamarin-prover --prove 979826_reuse_once_0_0.spthy 2>/dev/null > 979826_reuse_once_0_0_results.spthy
+tamarin-prover --prove 979826_reuse_once_0_1.spthy 2>/dev/null > 979826_reuse_once_0_1_results.spthy
+tamarin-prover --prove 979826_reuse_once_0_2.spthy 2>/dev/null > 979826_reuse_once_0_2_results.spthy
+tamarin-prover --prove 979826_reuse_once_0_3.spthy 2>/dev/null > 979826_reuse_once_0_3_results.spthy
+tamarin-prover --prove 979826_reuse_once_1_1.spthy 2>/dev/null > 979826_reuse_once_1_1_results.spthy
+tamarin-prover --prove 979826_reuse_once_1_2.spthy 2>/dev/null > 979826_reuse_once_1_2_results.spthy
+tamarin-prover --prove 979826_reuse_once_1_3.spthy 2>/dev/null > 979826_reuse_once_1_3_results.spthy
+tamarin-prover --prove 979826_reuse_once_2_2.spthy 2>/dev/null > 979826_reuse_once_2_2_results.spthy
+tamarin-prover --prove 979826_reuse_once_2_3.spthy 2>/dev/null > 979826_reuse_once_2_3_results.spthy
+tamarin-prover --prove 979826_reuse_once_3_3.spthy 2>/dev/null > 979826_reuse_once_3_3_results.spthy

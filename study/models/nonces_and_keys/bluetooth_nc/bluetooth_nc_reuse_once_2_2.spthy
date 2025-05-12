@@ -1,0 +1,390 @@
+theory bluetooth_valid_curve_bluetooth_nc_reuse_once_2_2
+begin
+
+builtins: diffie-hellman, hashing
+
+functions: element/3,
+		extract_element/1,
+		g2/0,
+		get_code/4,
+		get_nonceI/4,
+		get_nonceR/4
+
+equations: extract_element(element(t, s, n)) = n,
+		h(< g2, pkI, pkR, iN, get_nonceR(code, pkI, pkR, iN) >) = code,
+		h(< g2, pkI, pkR, get_nonceI(code, pkI, pkR, rN), rN >) = code
+
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+restriction Consistency:
+	"All t s r1 r2 y #i #j . 
+	Raised(t, s, r1, y) @ i & Raised(t, s, r2, y) @ j ==> r1 = r2"
+
+restriction Identity:
+	"All t r y #i . 
+	Raised(t, DH_neutral, r, y) @ i ==> r = DH_neutral"
+
+rule MisGenerateRandoms:
+	[
+		Fr(~rN2)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		Random2(~rN2),
+		Random2(~rN2)
+	]
+
+rule GenRandom3:
+	[
+		Fr(~iN3)
+	]
+	-->
+	[
+		Random3(~iN3)
+	]
+
+rule GenRandom2:
+	[
+		Fr(~rN2)
+	]
+	-->
+	[
+		Random2(~rN2)
+	]
+
+rule GenRandom1:
+	[
+		Fr(~ephr1)
+	]
+	-->
+	[
+		Random1(~ephr1)
+	]
+
+rule GenRandom0:
+	[
+		Fr(~ephi0)
+	]
+	-->
+	[
+		Random0(~ephi0)
+	]
+
+rule Create_Device:
+	[
+		Fr(~did),
+		Fr(~id),
+		Fr(~cap)
+	]
+	--[
+		
+	]->
+	[
+		!Device(~did, ~id, ~cap),
+		Out(< ~id, ~cap >)
+	]
+
+rule Init_Begin_DH_Exchange:
+	let
+		iPK = < element('C', DH_neutral, 'g'^~ephi), element('C', DH_neutral, 'g'^~ephi) >
+	in
+	[
+		!Device(~did, ~idI, ~capI),
+		Fr(~sid),
+		Random0(~ephi),
+		!Device(~did2, ~idR, ~capR)
+	]
+	--[
+		
+	]->
+	[
+		Init_Begin_DH(~sid, ~did, ~ephi),
+		Out(iPK),
+		Out(< ~idI, ~capI >),
+		!Init_Intended(~sid, ~idR, ~capR),
+		!Ltk(~idI, ~ephi)
+	]
+
+rule Resp_DH_Exchange:
+	let
+		rPK = < element('C', DH_neutral, 'g'^~ephr), element('C', DH_neutral, 'g'^~ephr) >
+	in
+	[
+		!Device(~did, ~idR, ~capR),
+		Fr(~sid),
+		Random1(~ephr),
+		In(iPK),
+		In(< ~idI, ~capI >),
+		!Device(~did2, ~idI, ~capI)
+	]
+	--[
+		
+	]->
+	[
+		Resp_Finish_DH(~sid, ~did, ~ephr, iPK),
+		Out(rPK),
+		!Resp_Intended(~sid, ~idI, ~capI),
+		!Ltk(~idR, ~ephr)
+	]
+
+rule Init_Finish_DH_Exchange:
+	[
+		Init_Begin_DH(~sid, ~did, ~eph),
+		In(rPK)
+	]
+	--[
+		
+	]->
+	[
+		Init_Finish_DH(~sid, ~did, ~eph, rPK)
+	]
+
+rule Resp_Begin_Auth:
+	let
+		iPk = < x, y >
+		rPK = < element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph) >
+		cb = h(< 'Cb', element('C', DH_neutral, 'g'^~eph), x, ~rN, '0' >)
+	in
+	[
+		Resp_Finish_DH(~sid, ~did, ~eph, iPk),
+		Random2(~rN)
+	]
+	--[
+		
+	]->
+	[
+		Resp_Begin_Auth(~sid, ~did, ~eph, iPk, ~rN),
+		Out(cb)
+	]
+
+rule Init_Begin_Auth:
+	[
+		In(Cb),
+		Random3(~iN),
+		Init_Finish_DH(~sid, ~did, ~eph, rPk)
+	]
+	--[
+		
+	]->
+	[
+		Out(~iN),
+		Init_Begin_Auth(~sid, ~did, ~eph, rPk, ~iN, Cb)
+	]
+
+rule Resp_Finish_Auth:
+	[
+		Resp_Begin_Auth(~sid, ~did, ~eph, iPk, ~rN),
+		In(iN)
+	]
+	-->
+	[
+		Out(~rN),
+		Resp_Finish_Auth(~sid, ~did, ~eph, iPk, ~rN, iN)
+	]
+
+rule Init_Finish_Auth:
+	let
+		rPk = < x, y >
+		rPK = < element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph) >
+		cCb = h('Cb', x, element('C', DH_neutral, 'g'^~eph), rN, '0')
+	in
+	[
+		In(rN),
+		Init_Begin_Auth(~sid, ~did, ~eph, rPk, ~iN, Cb)
+	]
+	--[
+		Eq(Cb, cCb)
+	]->
+	[
+		Init_Finish_Auth(~sid, ~did, ~eph, rPk, ~iN, rN)
+	]
+
+rule Compare_Digits:
+	let
+		iPkR = < xiR, yiR >
+		rPkI = < xrI, yrI >
+		iPKI = < element('C', DH_neutral, 'g'^~ephI), element('C', DH_neutral, 'g'^~ephI) >
+		rPKR = < element('C', DH_neutral, 'g'^~ephR), element('C', DH_neutral, 'g'^~ephR) >
+		VI = h(< g2, element('C', DH_neutral, 'g'^~ephI), xrI, ~iNI, rNI >)
+		VR = h(< g2, xiR, element('C', DH_neutral, 'g'^~ephR), iNR, ~rNR >)
+	in
+	[
+		Init_Finish_Auth(~sidI, ~didI, ~ephI, rPkI, ~iNI, rNI),
+		Resp_Finish_Auth(~sidR, ~didR, ~ephR, iPkR, ~rNR, iNR)
+	]
+	--[
+		Eq(VI, VR)
+	]->
+	[
+		Init_Finish_Compare(~sidI, ~didI, ~ephI, rPkI, ~iNI, rNI),
+		Resp_Finish_Compare(~sidR, ~didR, ~ephR, iPkR, ~rNR, iNR)
+	]
+
+rule Init_Begin_Derive_Normal:
+	let
+		x = element('C', DH_neutral, n)
+		iPk = < element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph) >
+		rPk = < x, y >
+		dhkey = < element('C', r, n^~eph), element('C', r, n^~eph) >
+		mackey = h(< 'f5', 'mackey', dhkey, ~iN, rN, ~idI, ~idR >)
+		ltk = h(< 'f5', 'ltk', dhkey, ~iN, rN, ~idI, ~idR >)
+		EI = h(< mackey, ~iN, rN, '0', ~capI, ~idI, ~idR >)
+	in
+	[
+		Init_Finish_Compare(~sid, ~did, ~eph, rPk, ~iN, rN),
+		!Init_Intended(~sid, ~idR, ~capR),
+		!Device(~did, ~idI, ~capI),
+		In(r)
+	]
+	--[
+		Eq(x, y),
+		Raised('C', DH_neutral, r, ~eph),
+		Almost_Finish_I(~sid, ~did, iPk, rPk, ~iN, rN, ~idR, ~capR, mackey, ltk),
+		Almost_Finish_I_Nonces(~idI, ~idR, ~iN, rN),
+		Almost_Finish_I_Keys(~idI, ~idR, ltk)
+	]->
+	[
+		Out(EI),
+		Init_Begin_Derive(~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk)
+	]
+
+rule Resp_Derive_Normal:
+	let
+		x = element('C', DH_neutral, n)
+		iPk = < x, y >
+		dhkey = < element('C', r, n^~eph), element('C', r, n^~eph) >
+		mackey = h(< 'f5', 'mackey', dhkey, iN, ~rN, ~idI, ~idR >)
+		ltk = h(< 'f5', 'ltk', dhkey, iN, ~rN, ~idI, ~idR >)
+		cEI = h(< mackey, iN, ~rN, '0', ~capI, ~idI, ~idR >)
+		ER = h(< 'f6', mackey, ~rN, iN, '0', ~capR, ~idR, ~idI >)
+		rPk = < element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph) >
+	in
+	[
+		Resp_Finish_Compare(~sid, ~did, ~eph, iPk, ~rN, iN),
+		!Resp_Intended(~sid, ~idI, ~capI),
+		!Device(~did, ~idR, ~capR),
+		In(EI),
+		In(r)
+	]
+	--[
+		Eq(EI, cEI),
+		Eq(x, y),
+		Raised('C', DH_neutral, r, ~eph),
+		Finished_R(~sid, ~did, iPk, rPk, iN, ~rN, ~idI, ~capI, mackey, ltk),
+		Finished_R_Nonces(~idI, ~idR, iN, ~rN),
+		Finished_R_Keys(~idI, ~idR, ltk)
+	]->
+	[
+		Out(ER)
+	]
+
+rule Init_Finish_Derive:
+	let
+		iPk = < element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph) >
+		cER = h(< 'f6', mackey, rN, ~iN, '0', ~capR, ~idR, ~idI >)
+	in
+	[
+		Init_Begin_Derive(~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk),
+		!Init_Intended(~sid, ~idR, ~capR),
+		!Device(~did, ~idI, ~capI),
+		In(ER)
+	]
+	--[
+		Eq(cER, ER),
+		Finished_I(~sid, ~did, iPk, rPk, ~iN, rN, ~idR, ~capR, mackey, ltk),
+		Finished_I_Nonces(~idI, ~idR, ~iN, rN),
+		Finished_I_Keys(~idI, ~idR, ltk)
+	]->
+	[
+		
+	]
+
+restriction Equality:
+	"All x y #i . 
+	Eq(x, y) @ i ==> x = y"
+
+restriction InEquality:
+	"All x #i . 
+	InEq(x, x) @ i ==> F"
+
+lemma weak_functional: exists-trace
+" Ex #i #j sidI sidR didI didR iPk1 iPk2 rPk1 rPk2 iN rN a1 a2 a3 a4 mackey1 mackey2 ltk1 ltk2 . 
+	Finished_I(sidI, didI, iPk1, rPk1, iN, rN, a1, a2, mackey1, ltk1) @ i & Finished_R(sidR, didR, iPk2, rPk2, iN, rN, a3, a4, mackey2, ltk2) @ j "
+
+lemma functional: exists-trace
+" Ex #i #j sidI sidR didI didR iPk rPk iN rN a1 a2 a3 a4 mackey ltk . 
+	Finished_I(sidI, didI, iPk, rPk, iN, rN, a1, a2, mackey, ltk) @ i & Finished_R(sidR, didR, iPk, rPk, iN, rN, a3, a4, mackey, ltk) @ j "
+
+lemma noninj_agree_init:
+" All #i idI idR iN rN . 
+	Finished_I_Nonces(idI, idR, iN, rN) @ i ==> (Ex #j . 
+	Finished_R_Nonces(idI, idR, iN, rN) @ j & #j < #i) "
+
+lemma noninj_agree_resp:
+" All #i idI idR iN rN . 
+	Finished_R_Nonces(idI, idR, iN, rN) @ i ==> (Ex #j . 
+	Almost_Finish_I_Nonces(idI, idR, iN, rN) @ j & #j < #i) "
+
+lemma inj_agree_init:
+" All #i idI idR iN rN . 
+	Finished_I_Nonces(idI, idR, iN, rN) @ i ==> (Ex #j . 
+	Finished_R_Nonces(idI, idR, iN, rN) @ j & #j < #i & not (Ex idI2 idR2 #i2 . 
+	Finished_I_Nonces(idI2, idR2, iN, rN) @ i2 & not (#i = #i2))) "
+
+lemma inj_agree_resp:
+" All #i idI idR iN rN . 
+	Finished_R_Nonces(idI, idR, iN, rN) @ i ==> (Ex #j . 
+	Almost_Finish_I_Nonces(idI, idR, iN, rN) @ j & #j < #i & not (Ex idI2 idR2 #i2 . 
+	Finished_R_Nonces(idI2, idR2, iN, rN) @ i2 & not (#i = #i2))) "
+
+lemma noninj_agree_init_keys:
+" All #i idI idR ltk . 
+	Finished_I_Keys(idI, idR, ltk) @ i ==> (Ex #j . 
+	Finished_R_Keys(idI, idR, ltk) @ j & #j < #i) "
+
+lemma noninj_agree_resp_keys:
+" All #i idI idR ltk . 
+	Finished_R_Keys(idI, idR, ltk) @ i ==> (Ex #j . 
+	Almost_Finish_I_Keys(idI, idR, ltk) @ j & #j < #i) "
+
+lemma inj_agree_init_keys:
+" All #i idI idR ltk . 
+	Finished_I_Keys(idI, idR, ltk) @ i ==> (Ex #j . 
+	Finished_R_Keys(idI, idR, ltk) @ j & #j < #i & not (Ex idI2 idR2 #i2 . 
+	Finished_I_Keys(idI2, idR2, ltk) @ i2 & not (#i = #i2))) "
+
+lemma inj_agree_resp_keys:
+" All #i idI idR ltk . 
+	Finished_R_Keys(idI, idR, ltk) @ i ==> (Ex #j . 
+	Almost_Finish_I_Keys(idI, idR, ltk) @ j & #j < #i & not (Ex idI2 idR2 #i2 . 
+	Finished_R_Keys(idI2, idR2, ltk) @ i2 & not (#i = #i2))) "
+
+lemma key_secrecy_init:
+" All #i idI idR ltk . 
+	Finished_I_Keys(idI, idR, ltk) @ i ==> (not Ex #k . 
+	K(ltk) @ k) "
+
+lemma key_secrecy_resp:
+" All #i idI idR ltk . 
+	Finished_R_Keys(idI, idR, ltk) @ i ==> (not Ex #k . 
+	K(ltk) @ k) "
+
+lemma key_freshness_init:
+" All #i idI idR ltk . 
+	Finished_I_Keys(idI, idR, ltk) @ i ==> (not Ex idI2 idR2 #k . 
+	Finished_I_Keys(idI2, idR2, ltk) @ k & (not #k = #i)) "
+
+lemma key_freshness_resp:
+" All #i idI idR ltk . 
+	Finished_R_Keys(idI, idR, ltk) @ i ==> (not Ex idI2 idR2 #k . 
+	Finished_R_Keys(idI2, idR2, ltk) @ k & (not #k = #i)) "
+
+lemma leakage:
+" not Ex t1 l1 r1 t2 l2 r2 y #i #j . 
+	Raised(t1, l1, r1, y) @ i & Raised(t2, l2, r2, y) @ j & (not t1 = t2) & (not r1 = DH_neutral) & (not r2 = DH_neutral) "
+
+
+end

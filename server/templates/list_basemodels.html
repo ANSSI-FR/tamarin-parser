@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Basemodels</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/table.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.min.css") }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap-icons.css") }}">
+	</head>
+	<body>
+<div class="container">
+ <table class="responsive-table">
+  <thead>
+  <tr>
+    <th scope="col">Created</th>
+    <th scope="col">Model</th>
+    <th scope="col">ID</th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for item in models %}
+  <tr>
+	  <td >{{ item.created }}</td>
+	  <td ><a href="/{{ item.uuid }}/configure"><i class="bi bi-gear-fill"></i></a> <a href="/{{ item.uuid }}/runner"><i class="bi bi-play-circle-fill"></i></a> <a href="/{{ item.uuid }}/table"><i class="bi bi-table"></i></a>{{ item.orig_filename }}</td>
+	  <td >{{ item.uuid }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table> 
+</div>
+	</body>
+</html>

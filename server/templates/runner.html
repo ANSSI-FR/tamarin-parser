@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Model execution</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.min.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/runner.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/results.css") }}">
+	</head>
+	<body>
+<div class="container">
+			<div class="text-center">
+		<h1>Runner</h1>
+
+		<h3><a href="/{{model.uuid}}/file">{{ model.orig_filename }}</a></h3>
+			</div>
+        <h4>Lemma legend</h4>
+        <ul>
+            {% for lemma in lemmas %}
+            <li>{% if lemma.short_name != "" %}{{ lemma.short_name }}{% else %}{{ lemma.name }}{% endif %} = {{ lemma.name }} ({{ lemma.type }}) ----- {% if not lemma.enabled %}<u>NOT</u>{% endif %} displayed</li> 
+            {% endfor %}
+        </ul>
+
+    {% for option in data %}
+        <h4>Opt: {{ option.option }}</h4>
+        {% for model in option.submodels %}
+            <div class="offset-1 col-11">
+                <div class="row runner-elt">
+                    
+                    <div class="col-6 runner-file">
+                        <p>File : <a href="/{{ model.model_uuid }}/file">{{ model.model_filepath }}</a></p>
+                        <p>cli : <code>tamarin-prover {% for flag in option.flags.split(",") %}{% if flag != "" %} -D{{flag}} {% endif %}{% endfor %}{{ model.model_filepath }} --prove</code></p>
+                    </div>
+                    <div class="col-6">
+                        <p>Results : <a href="/{{ model.results_uuid }}/file">{{ model.results_filepath }}</a></p>
+                        <ul>
+                            {% for result in model.results %}
+                            <li>{{ result.lemma_name }}: {% if result.value %}<span class="checkmark"></span>{% else %}<span class="koglyph"></span>{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+</body>
+</html>
+
+

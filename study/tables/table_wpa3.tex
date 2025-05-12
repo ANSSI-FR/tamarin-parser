@@ -1,0 +1,50 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{30cm}{
+\captionof{table}{ Detailed results for WPA3 - Nonces and keys }
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_AP & IA\_C & NIA\_AP & NIA\_C & IAK\_AP & IAK\_C & NIAK\_AP & NIAK\_C & S\_AP & S\_C & KF\_AP & KF\_C \\ \hline
+No misgeneration & N/A & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $sk_C$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $m_C$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $sk_{AP}$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $m_{AP}$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $N_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $N_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $sk_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $m_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $sk_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $m_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $N_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $N_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_C$ = $sk_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_C$ = $m_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_C$ = $sk_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_C$ = $m_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_C$ = $N_{AP}$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_C$ = $N_C$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $m_C$ = $m_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $m_C$ = $sk_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $m_C$ = $m_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $m_C$ = $N_{AP}$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $m_C$ = $N_C$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_{AP}$ = $sk_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_{AP}$ = $m_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_{AP}$ = $N_{AP}$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_{AP}$ = $N_C$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $m_{AP}$ = $m_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $m_{AP}$ = $N_{AP}$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $m_{AP}$ = $N_C$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $N_{AP}$ = $N_{AP}$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $N_{AP}$ = $N_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $N_C$ = $N_C$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+\end{tabular}}
+\end{document}

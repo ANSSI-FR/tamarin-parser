@@ -1,0 +1,916 @@
+theory 4WayHandshake_wpa2_reuse_always_0 begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, h/1, mac/2, pair/2, snd/1,
+           staticpsk/0[private,destructor], true/0, verif/3
+equations:
+    fst(<x.1, x.2>) = x.1,
+    snd(<x.1, x.2>) = x.2,
+    verif(mac(m, k), m, k) = true
+
+
+
+
+
+
+
+rule (modulo E) MisgenerateRandoms:
+   [ Fr( ~ANonce0 ) ]
+  --[ MisgenerateOnlyOnce( ) ]->
+   [ !Random0( ~ANonce0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom1:
+   [ Fr( ~SNonce1 ) ] --> [ Random1( ~SNonce1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) CreateSession:
+   [ In( <$AP, $Client> ) ]
+  -->
+   [
+   APReady( $AP, $Client, staticpsk ),
+   ClientReady( $AP, $Client, staticpsk ), !Ltk( $AP, staticpsk ),
+   !Ltk( $Client, staticpsk )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RevLtk:
+   [ !Ltk( A, k ) ] --[ RevLtk( ) ]-> [ Out( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) APCreateSession:
+   [ APReady( $AP, $Client, psk ), !Random0( ~ANonce ) ]
+  --[ APStart( ) ]->
+   [ APSentRandom( $AP, $Client, psk, ~ANonce ), Out( <'1', ~ANonce> ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) ClientCreateSession:
+   [ ClientReady( $AP, $Client, psk ), In( ANonce ), Random1( ~SNonce ) ]
+  --[
+  ClientStart( ), ClientStarted( $AP, $Client, ~SNonce, ANonce ),
+  ClientStartedKeys( $AP, $Client,
+                     h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(psk)>)
+  )
+  ]->
+   [
+   ClientSentRandom( $AP, $Client, ~SNonce, ANonce,
+                     h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(psk)>)
+   ),
+   Out( <<'2', ~SNonce>, 
+         mac(<'2', ~SNonce>,
+             h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(psk)>))
+        >
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) APRecvMsg2:
+   [ In( <<'2', SNonce>, m> ), APSentRandom( $AP, $Client, psk, ~ANonce ) ]
+  --[
+  Eq( verif(m, <'2', SNonce>,
+            h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)),
+      true
+  ),
+  LblRecvMsg2( ),
+  LblAPSentMsg3( $AP, $Client, SNonce, ~ANonce,
+                 h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)
+  ),
+  APStarted( $AP, $Client, SNonce, ~ANonce ),
+  APStartedKeys( $AP, $Client,
+                 h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)
+  )
+  ]->
+   [
+   APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce,
+               h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)
+   ),
+   Out( <<'3', ~ANonce>, 
+         mac(<'3', ~ANonce>,
+             h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>))
+        >
+   )
+   ]
+
+  /*
+  rule (modulo AC) APRecvMsg2:
+     [ In( <<'2', SNonce>, m> ), APSentRandom( $AP, $Client, psk, ~ANonce ) ]
+    --[
+    Eq( z, true ), LblRecvMsg2( ),
+    LblAPSentMsg3( $AP, $Client, SNonce, ~ANonce,
+                   h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)
+    ),
+    APStarted( $AP, $Client, SNonce, ~ANonce ),
+    APStartedKeys( $AP, $Client,
+                   h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)
+    )
+    ]->
+     [
+     APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce,
+                 h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>)
+     ),
+     Out( <<'3', ~ANonce>, 
+           mac(<'3', ~ANonce>,
+               h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk)>))
+          >
+     )
+     ]
+    variants (modulo AC)
+    1. $AP   = $AP.17
+       $Client
+             = $Client.18
+       ~ANonce
+             = ~ANonce.19
+       SNonce
+             = SNonce.20
+       m     = m.21
+       psk   = psk.22
+       z     = verif(m.21, <'2', SNonce.20>,
+                     h(<$AP.17, $Client.18, ~ANonce.19, SNonce.20, 'Pairwisekeyexpansion', 
+                        h(psk.22)>))
+    
+    2. $AP   = $AP.17
+       $Client
+             = $Client.18
+       ~ANonce
+             = ~ANonce.19
+       SNonce
+             = SNonce.20
+       m     = mac(<'2', SNonce.20>,
+                   h(<$AP.17, $Client.18, ~ANonce.19, SNonce.20, 'Pairwisekeyexpansion', 
+                      h(psk.22)>))
+       psk   = psk.22
+       z     = true
+  */
+
+rule (modulo E) ClientRecvMsg3:
+   [
+   ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ),
+   In( <<'3', ANonce>, m> )
+   ]
+  --[
+  Eq( verif(m, <'3', ANonce>, ptk), true ),
+  LblClientSentMsg4( $AP, $Client, ~SNonce, ANonce, ptk ), LblRecvMsg3( ),
+  ClientEnded( $AP, $Client, ~SNonce, ANonce ),
+  ClientEndedKeys( $AP, $Client, ptk )
+  ]->
+   [
+   ClientSentMsg4( $AP, $Client, ~SNonce, ANonce, ptk ),
+   Out( <<'4', 'End'>, mac(<'4', 'End'>, ptk)> )
+   ]
+
+  /*
+  rule (modulo AC) ClientRecvMsg3:
+     [
+     ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ),
+     In( <<'3', ANonce>, m> )
+     ]
+    --[
+    Eq( z, true ), LblClientSentMsg4( $AP, $Client, ~SNonce, ANonce, ptk ),
+    LblRecvMsg3( ), ClientEnded( $AP, $Client, ~SNonce, ANonce ),
+    ClientEndedKeys( $AP, $Client, ptk )
+    ]->
+     [
+     ClientSentMsg4( $AP, $Client, ~SNonce, ANonce, ptk ),
+     Out( <<'4', 'End'>, mac(<'4', 'End'>, ptk)> )
+     ]
+    variants (modulo AC)
+    1. ANonce
+             = ANonce.14
+       m     = m.15
+       ptk   = ptk.16
+       z     = verif(m.15, <'3', ANonce.14>, ptk.16)
+    
+    2. ANonce
+             = ANonce.14
+       m     = mac(<'3', ANonce.14>, ptk.16)
+       ptk   = ptk.16
+       z     = true
+  */
+
+rule (modulo E) APRecvMsg4:
+   [
+   APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce, ptk ),
+   In( <<'4', 'End'>, m> )
+   ]
+  --[
+  Eq( verif(m, <'4', 'End'>, ptk), true ),
+  LblAPRecvMsg4( $AP, $Client, SNonce, ~ANonce, ptk ), LblRecvMsg4( ),
+  APEnded( $AP, $Client, SNonce, ~ANonce ),
+  APEndedKeys( $AP, $Client, ptk )
+  ]->
+   [ APRecvMsg4( $AP, $Client, psk, SNonce, ~ANonce, ptk ) ]
+
+  /*
+  rule (modulo AC) APRecvMsg4:
+     [
+     APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce, ptk ),
+     In( <<'4', 'End'>, m> )
+     ]
+    --[
+    Eq( z, true ), LblAPRecvMsg4( $AP, $Client, SNonce, ~ANonce, ptk ),
+    LblRecvMsg4( ), APEnded( $AP, $Client, SNonce, ~ANonce ),
+    APEndedKeys( $AP, $Client, ptk )
+    ]->
+     [ APRecvMsg4( $AP, $Client, psk, SNonce, ~ANonce, ptk ) ]
+    variants (modulo AC)
+    1. m     = m.14
+       ptk   = ptk.16
+       z     = verif(m.14, <'4', 'End'>, ptk.16)
+    
+    2. m     = mac(<'4', 'End'>, ptk.12)
+       ptk   = ptk.12
+       z     = true
+  */
+
+restriction RestrMisgeneratesOnlyOnce:
+  "∀ #i #j.
+    ((MisgenerateOnlyOnce( ) @ #i) ∧ (MisgenerateOnlyOnce( ) @ #j)) ⇒
+    (#i = #j)"
+  // safety formula
+
+restriction RestrEq:
+  "∀ a b #i. (Eq( a, b ) @ #i) ⇒ (a = b)"
+  // safety formula
+
+lemma functional_4way:
+  exists-trace
+  "∃ a c snonce anonce ptk #i #j.
+    (LblClientSentMsg4( a, c, snonce, anonce, ptk ) @ #i) ∧
+    (LblAPRecvMsg4( a, c, snonce, anonce, ptk ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ a c snonce anonce ptk #i #j.
+  (LblClientSentMsg4( a, c, snonce, anonce, ptk ) @ #i) ∧
+  (LblAPRecvMsg4( a, c, snonce, anonce, ptk ) @ #j)"
+*/
+simplify
+solve( ClientSentRandom( $AP, $Client, ~SNonce, ~ANonce, ptk ) ▶₀ #i )
+  case ClientCreateSession
+  solve( APSentMsg3( $AP, $Client, psk, ~SNonce, ~ANonce,
+                     h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+         ) ▶₀ #j )
+    case APRecvMsg2
+    solve( !KU( ~ANonce ) @ #vk.3 )
+      case APCreateSession
+      solve( !KU( ~SNonce ) @ #vk.16 )
+        case ClientCreateSession
+        solve( !KU( mac(<'3', ~ANonce>,
+                        h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                          >))
+               ) @ #vk.5 )
+          case APRecvMsg2
+          solve( !KU( mac(<'4', 'End'>,
+                          h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                            >))
+                 ) @ #vk.12 )
+            case ClientRecvMsg3
+            solve( !KU( mac(<'2', ~SNonce>,
+                            h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                              >))
+                   ) @ #vk.17 )
+              case ClientCreateSession
+              SOLVED // trace found
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma inj_agree_ap:
+  all-traces
+  "∀ ap client snonce anonce #i.
+    (APEnded( ap, client, snonce, anonce ) @ #i) ⇒
+    ((∃ #j.
+       ((ClientEnded( ap, client, snonce, anonce ) @ #j) ∧ (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (APEnded( ap2, client2, snonce, anonce ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client snonce anonce #i.
+  (APEnded( ap, client, snonce, anonce ) @ #i)
+ ∧
+  (∀ #j.
+    (ClientEnded( ap, client, snonce, anonce ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (APEnded( ap2, client2, snonce, anonce ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APSentMsg3( $AP, $Client, psk, snonce, ~ANonce, ptk ) ▶₀ #i )
+  case APRecvMsg2
+  solve( !KU( mac(<'4', 'End'>,
+                  h(<$AP, $Client, ~ANonce, snonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case ClientRecvMsg3
+    solve( (#i < #i2)  ∥ (#i2 < #i) )
+      case case_1
+      solve( APSentMsg3( $AP.1, $Client.1, psk, ~SNonce, ~ANonce, ptk
+             ) ▶₀ #i2 )
+        case APRecvMsg2
+        solve( !KU( mac(<'4', 'End'>,
+                        h(<$AP.1, $Client.1, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', 
+                           h(staticpsk)>))
+               ) @ #vk.20 )
+          case ClientRecvMsg3
+          solve( !KU( ~ANonce ) @ #vk.16 )
+            case APCreateSession
+            solve( !KU( ~SNonce ) @ #vk.9 )
+              case ClientCreateSession
+              solve( !KU( mac(<'2', ~SNonce>,
+                              h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                                >))
+                     ) @ #vk.11 )
+                case ClientCreateSession
+                solve( !KU( mac(<'3', ~ANonce>,
+                                h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                                  >))
+                       ) @ #vk.17 )
+                  case APRecvMsg2
+                  SOLVED // trace found
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma inj_agree_client:
+  all-traces
+  "∀ ap client snonce anonce #i.
+    (ClientEnded( ap, client, snonce, anonce ) @ #i) ⇒
+    ((∃ #j.
+       ((APStarted( ap, client, snonce, anonce ) @ #j) ∧ (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (ClientEnded( ap2, client2, snonce, anonce ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client snonce anonce #i.
+  (ClientEnded( ap, client, snonce, anonce ) @ #i)
+ ∧
+  (∀ #j.
+    (APStarted( ap, client, snonce, anonce ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (ClientEnded( ap2, client2, snonce, anonce ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientSentRandom( $AP, $Client, ~SNonce, anonce, ptk ) ▶₀ #i )
+  case ClientCreateSession
+  solve( !KU( mac(<'3', anonce>,
+                  h(<$AP, $Client, anonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case APRecvMsg2
+    solve( (#i < #i2)  ∥ (#i2 < #i) )
+      case case_1
+      solve( ClientSentRandom( $AP.1, $Client.1, ~SNonce, ~ANonce, ptk
+             ) ▶₀ #i2 )
+        case ClientCreateSession
+        by contradiction /* cyclic */
+      qed
+    next
+      case case_2
+      solve( ClientSentRandom( $AP.1, $Client.1, ~SNonce, ~ANonce, ptk
+             ) ▶₀ #i2 )
+        case ClientCreateSession
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case c_mac
+    solve( !KU( h(<$AP, $Client, anonce, ~SNonce, 'Pairwisekeyexpansion', 
+                   h(staticpsk)>)
+           ) @ #vk.8 )
+      case c_h
+      solve( !KU( h(staticpsk) ) @ #vk.16 )
+        case c_h
+        solve( !KU( staticpsk ) @ #vk.17 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_ap:
+  all-traces
+  "∀ ap client snonce anonce #i.
+    (APEnded( ap, client, snonce, anonce ) @ #i) ⇒
+    ((∃ #j. (ClientEnded( ap, client, snonce, anonce ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client snonce anonce #i.
+  (APEnded( ap, client, snonce, anonce ) @ #i)
+ ∧
+  (∀ #j. (ClientEnded( ap, client, snonce, anonce ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APSentMsg3( $AP, $Client, psk, snonce, ~ANonce, ptk ) ▶₀ #i )
+  case APRecvMsg2
+  solve( !KU( mac(<'4', 'End'>,
+                  h(<$AP, $Client, ~ANonce, snonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case ClientRecvMsg3
+    by contradiction /* from formulas */
+  next
+    case c_mac
+    solve( !KU( h(<$AP, $Client, ~ANonce, snonce, 'Pairwisekeyexpansion', 
+                   h(staticpsk)>)
+           ) @ #vk.13 )
+      case c_h
+      solve( !KU( h(staticpsk) ) @ #vk.21 )
+        case c_h
+        solve( !KU( staticpsk ) @ #vk.22 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_client:
+  all-traces
+  "∀ ap client snonce anonce #i.
+    (ClientEnded( ap, client, snonce, anonce ) @ #i) ⇒
+    ((∃ #j. (APStarted( ap, client, snonce, anonce ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client snonce anonce #i.
+  (ClientEnded( ap, client, snonce, anonce ) @ #i)
+ ∧
+  (∀ #j. (APStarted( ap, client, snonce, anonce ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientSentRandom( $AP, $Client, ~SNonce, anonce, ptk ) ▶₀ #i )
+  case ClientCreateSession
+  solve( !KU( mac(<'3', anonce>,
+                  h(<$AP, $Client, anonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case APRecvMsg2
+    by contradiction /* from formulas */
+  next
+    case c_mac
+    solve( !KU( h(<$AP, $Client, anonce, ~SNonce, 'Pairwisekeyexpansion', 
+                   h(staticpsk)>)
+           ) @ #vk.8 )
+      case c_h
+      solve( !KU( h(staticpsk) ) @ #vk.16 )
+        case c_h
+        solve( !KU( staticpsk ) @ #vk.17 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma keys_inj_agree_ap:
+  all-traces
+  "∀ ap client ptk #i.
+    (APEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((∃ #j.
+       ((ClientEndedKeys( ap, client, ptk ) @ #j) ∧ (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (APEndedKeys( ap2, client2, ptk ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (APEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∀ #j.
+    (ClientEndedKeys( ap, client, ptk ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (APEndedKeys( ap2, client2, ptk ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce, ptk ) ▶₀ #i )
+  case APRecvMsg2
+  solve( !KU( mac(<'4', 'End'>,
+                  h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case ClientRecvMsg3
+    solve( (#i < #i2)  ∥ (#i2 < #i) )
+      case case_1
+      solve( APSentMsg3( $AP.1, $Client.1, psk, SNonce.1, ~ANonce.1,
+                         h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+             ) ▶₀ #i2 )
+        case APRecvMsg2
+        solve( !KU( ~ANonce ) @ #vk.16 )
+          case APCreateSession
+          solve( !KU( ~SNonce ) @ #vk.9 )
+            case ClientCreateSession
+            solve( !KU( mac(<'2', ~SNonce>,
+                            h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                              >))
+                   ) @ #vk.11 )
+              case ClientCreateSession
+              solve( !KU( mac(<'3', ~ANonce>,
+                              h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                                >))
+                     ) @ #vk.17 )
+                case APRecvMsg2
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma keys_inj_agree_client:
+  all-traces
+  "∀ ap client ptk #i.
+    (ClientEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((∃ #j.
+       ((APStartedKeys( ap, client, ptk ) @ #j) ∧ (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (ClientEndedKeys( ap2, client2, ptk ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (ClientEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∀ #j.
+    (APStartedKeys( ap, client, ptk ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (ClientEndedKeys( ap2, client2, ptk ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ) ▶₀ #i )
+  case ClientCreateSession
+  solve( !KU( mac(<'3', ANonce>,
+                  h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case APRecvMsg2
+    solve( (#i < #i2)  ∥ (#i2 < #i) )
+      case case_1
+      solve( ClientSentRandom( $AP.1, $Client.1, ~SNonce.1, ANonce.1,
+                               h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+             ) ▶₀ #i2 )
+        case ClientCreateSession
+        by contradiction /* cyclic */
+      qed
+    next
+      case case_2
+      solve( ClientSentRandom( $AP.1, $Client.1, ~SNonce.1, ANonce.1,
+                               h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+             ) ▶₀ #i2 )
+        case ClientCreateSession
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case c_mac
+    solve( !KU( h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', 
+                   h(staticpsk)>)
+           ) @ #vk.8 )
+      case c_h
+      solve( !KU( h(staticpsk) ) @ #vk.16 )
+        case c_h
+        solve( !KU( staticpsk ) @ #vk.17 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma keys_noninj_agree_ap:
+  all-traces
+  "∀ ap client ptk #i.
+    (APEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((∃ #j. (ClientEndedKeys( ap, client, ptk ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (APEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∀ #j. (ClientEndedKeys( ap, client, ptk ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce, ptk ) ▶₀ #i )
+  case APRecvMsg2
+  solve( !KU( mac(<'4', 'End'>,
+                  h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case ClientRecvMsg3
+    by contradiction /* from formulas */
+  next
+    case c_mac
+    solve( !KU( h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', 
+                   h(staticpsk)>)
+           ) @ #vk.13 )
+      case c_h
+      solve( !KU( h(staticpsk) ) @ #vk.21 )
+        case c_h
+        solve( !KU( staticpsk ) @ #vk.22 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma keys_noninj_agree_client:
+  all-traces
+  "∀ ap client ptk #i.
+    (ClientEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((∃ #j. (APStartedKeys( ap, client, ptk ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (ClientEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∀ #j. (APStartedKeys( ap, client, ptk ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ) ▶₀ #i )
+  case ClientCreateSession
+  solve( !KU( mac(<'3', ANonce>,
+                  h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+         ) @ #vk.4 )
+    case APRecvMsg2
+    by contradiction /* from formulas */
+  next
+    case c_mac
+    solve( !KU( h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', 
+                   h(staticpsk)>)
+           ) @ #vk.8 )
+      case c_h
+      solve( !KU( h(staticpsk) ) @ #vk.16 )
+        case c_h
+        solve( !KU( staticpsk ) @ #vk.17 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma weak_secrecy_ap:
+  all-traces
+  "∀ ap client ptk #i.
+    (APEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((¬(∃ #j. K( ptk ) @ #j)) ∨ (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (APEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∃ #j. (K( ptk ) @ #j)) ∧ (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce, ptk ) ▶₀ #i )
+  case APRecvMsg2
+  solve( !KU( h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', 
+                 h(staticpsk)>)
+         ) @ #vk.5 )
+    case c_h
+    solve( !KU( h(staticpsk) ) @ #vk.21 )
+      case c_h
+      solve( !KU( staticpsk ) @ #vk.22 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+lemma weak_secrecy_Client:
+  all-traces
+  "∀ ap client ptk #i.
+    (ClientEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((¬(∃ #j. K( ptk ) @ #j)) ∨ (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (ClientEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∃ #j. (K( ptk ) @ #j)) ∧ (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ) ▶₀ #i )
+  case ClientCreateSession
+  solve( !KU( h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', 
+                 h(staticpsk)>)
+         ) @ #vk.5 )
+    case c_h
+    solve( !KU( h(staticpsk) ) @ #vk.16 )
+      case c_h
+      solve( !KU( staticpsk ) @ #vk.17 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+lemma key_freshness_client:
+  all-traces
+  "∀ ap client ptk #i.
+    (ClientEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((¬(∃ ap2 client2 #j.
+         (ClientEndedKeys( ap2, client2, ptk ) @ #j) ∧ (¬(#i = #j)))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (ClientEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∃ ap2 client2 #j.
+    (ClientEndedKeys( ap2, client2, ptk ) @ #j) ∧ ¬(#i = #j)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ) ▶₀ #i )
+    case ClientCreateSession
+    solve( ClientSentRandom( $AP.1, $Client.1, ~SNonce.1, ANonce.1,
+                             h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+           ) ▶₀ #j )
+      case ClientCreateSession
+      by contradiction /* cyclic */
+    qed
+  qed
+next
+  case case_2
+  solve( ClientSentRandom( $AP, $Client, ~SNonce, ANonce, ptk ) ▶₀ #i )
+    case ClientCreateSession
+    solve( ClientSentRandom( $AP.1, $Client.1, ~SNonce.1, ANonce.1,
+                             h(<$AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+           ) ▶₀ #j )
+      case ClientCreateSession
+      by contradiction /* cyclic */
+    qed
+  qed
+qed
+
+lemma key_freshness_ap:
+  all-traces
+  "∀ ap client ptk #i.
+    (APEndedKeys( ap, client, ptk ) @ #i) ⇒
+    ((¬(∃ ap2 client2 #j.
+         (APEndedKeys( ap2, client2, ptk ) @ #j) ∧ (¬(#i = #j)))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client ptk #i.
+  (APEndedKeys( ap, client, ptk ) @ #i)
+ ∧
+  (∃ ap2 client2 #j.
+    (APEndedKeys( ap2, client2, ptk ) @ #j) ∧ ¬(#i = #j)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( APSentMsg3( $AP, $Client, psk, SNonce, ~ANonce, ptk ) ▶₀ #i )
+    case APRecvMsg2
+    solve( APSentMsg3( $AP.1, $Client.1, psk, SNonce.1, ~ANonce.1,
+                       h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(staticpsk)>)
+           ) ▶₀ #j )
+      case APRecvMsg2
+      solve( !KU( mac(<'4', 'End'>,
+                      h(<$AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(staticpsk)>))
+             ) @ #vk.4 )
+        case ClientRecvMsg3
+        solve( !KU( ~ANonce ) @ #vk.16 )
+          case APCreateSession
+          solve( !KU( ~SNonce ) @ #vk.9 )
+            case ClientCreateSession
+            solve( !KU( mac(<'2', ~SNonce>,
+                            h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                              >))
+                   ) @ #vk.11 )
+              case ClientCreateSession
+              solve( !KU( mac(<'3', ~ANonce>,
+                              h(<$AP, $Client, ~ANonce, ~SNonce, 'Pairwisekeyexpansion', h(staticpsk)
+                                >))
+                     ) @ #vk.17 )
+                case APRecvMsg2
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-01-20 17:15:39.562956625 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: wpa2_reuse_always_0.spthy
+
+  processing time: 1.24s
+  
+  functional_4way (exists-trace): verified (9 steps)
+  inj_agree_ap (all-traces): falsified - found trace (11 steps)
+  inj_agree_client (all-traces): verified (13 steps)
+  noninj_agree_ap (all-traces): verified (9 steps)
+  noninj_agree_client (all-traces): verified (9 steps)
+  keys_inj_agree_ap (all-traces): falsified - found trace (10 steps)
+  keys_inj_agree_client (all-traces): verified (13 steps)
+  keys_noninj_agree_ap (all-traces): verified (9 steps)
+  keys_noninj_agree_client (all-traces): verified (9 steps)
+  weak_secrecy_ap (all-traces): verified (7 steps)
+  weak_secrecy_Client (all-traces): verified (7 steps)
+  key_freshness_client (all-traces): verified (8 steps)
+  key_freshness_ap (all-traces): falsified - found trace (10 steps)
+
+==============================================================================

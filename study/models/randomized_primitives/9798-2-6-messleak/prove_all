@@ -1,0 +1,11 @@
+tamarin-prover -Dn_reuse_messleak -DagreeA 979826_reuse_once_3_3.spthy --prove > 979826_reuse_once_3_3_results_agreea.spthy
+tamarin-prover -Dn_reuse_messleak -DagreeB 979826_reuse_once_3_3.spthy --prove > 979826_reuse_once_3_3_results_agreeb.spthy
+
+tamarin-prover -Dn_reuse_messleak -DagreeA 979826_reuse_once_4_4.spthy --prove > 979826_reuse_once_4_4_results_agreea.spthy
+tamarin-prover -Dn_reuse_messleak -DagreeB 979826_reuse_once_4_4.spthy --prove > 979826_reuse_once_4_4_results_agreeb.spthy
+
+tamarin-prover -Dn_reuse_messleak -DagreeA 979826_reuse_always_3.spthy --prove > 979826_reuse_always_3_results_agreea.spthy
+tamarin-prover -Dn_reuse_messleak -DagreeB 979826_reuse_always_3.spthy --prove > 979826_reuse_always_3_results_agreeb.spthy
+
+tamarin-prover -Dn_reuse_messleak -DagreeA 979826_reuse_always_4.spthy --prove > 979826_reuse_always_4_results_agreea.spthy
+tamarin-prover -Dn_reuse_messleak -DagreeB 979826_reuse_always_4.spthy --prove > 979826_reuse_always_4_results_agreeb.spthy

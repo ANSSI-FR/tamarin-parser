@@ -1,0 +1,17 @@
+.checkmark::after {
+    content:"✓" ;
+}
+
+.koglyph::after {
+    content: "✗";
+}
+
+.checkmark {
+    color: green;
+    font-size: 18pt;
+}
+
+.koglyph {
+    color: red;
+    font-size: 18pt;
+}

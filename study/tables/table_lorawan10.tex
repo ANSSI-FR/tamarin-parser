@@ -1,0 +1,24 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{30cm}{
+\captionof{table}{ Detailed results for LoRaWAN 1.0 OTAA - Nonces }
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_D & IA\_N & NIA\_D & NIA\_N & IAK & NIAK & S\_D & S\_N & KF\_D & KF\_N \\ \hline
+No misgeneration & N/A & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $DevNonce$ & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $JoinNonce$ & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $DevNonce$ & \attack & \attack & \noattack & \noattack & \attack & \noattack & \noattack & \noattack & \attack & \noattack\\ \hline
+Reuse Always & $JoinNonce$ & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \noattack & \attack\\ \hline
+Reuse Once & $DevNonce$ = $DevNonce$ & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \attack & \noattack\\ \hline
+Reuse Once & $DevNonce$ = $JoinNonce$ & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $JoinNonce$ = $JoinNonce$ & \attack & \attack & \attack & \noattack & \attack & \attack & \noattack & \noattack & \noattack & \attack\\ \hline
+\end{tabular}}
+\end{document}

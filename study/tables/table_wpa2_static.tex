@@ -1,0 +1,24 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{30cm}{
+\captionof{table}{ Detailed results for Four-Way Handshake - Static PSK - Nonces }
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_AP & IA\_C & NIA\_AP & NIA\_C & IAK\_AP & IAK\_C & NIAK\_AP & NIAK\_C & S\_AP & S\_C & KF\_AP & KF\_C \\ \hline
+No misgeneration & N/A & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $N_A$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $N_S$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $N_A$ & \attack & \noattack & \noattack & \noattack & \attack & \noattack & \noattack & \noattack & \noattack & \noattack & \attack & \noattack\\ \hline
+Reuse Always & $N_S$ & \noattack & \attack & \noattack & \noattack & \noattack & \attack & \noattack & \noattack & \noattack & \noattack & \noattack & \attack\\ \hline
+Reuse Once & $N_A$ = $N_A$ & \attack & \noattack & \noattack & \noattack & \attack & \noattack & \noattack & \noattack & \noattack & \noattack & \attack & \noattack\\ \hline
+Reuse Once & $N_A$ = $N_S$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $N_S$ = $N_S$ & \noattack & \attack & \noattack & \noattack & \noattack & \attack & \noattack & \noattack & \noattack & \noattack & \noattack & \attack\\ \hline
+\end{tabular}}
+\end{document}

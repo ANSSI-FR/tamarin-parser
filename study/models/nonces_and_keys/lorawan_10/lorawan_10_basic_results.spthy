@@ -1,0 +1,970 @@
+theory LoRaWAN10_lorawan_10_basic begin
+
+// Function signature and definition of the equational theory E
+
+functions: cst1/0, cst2/0, fst/1, mac/2, pair/2, sdec/2, senc/2, snd/1,
+           true/0, verif_mac/3
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2,
+    verif_mac(k, m, mac(k, m)) = true
+
+
+
+
+
+
+
+rule (modulo E) GenRandom1:
+   [ Fr( ~joinnonce1 ) ] --> [ Random1( ~joinnonce1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom0:
+   [ Fr( ~devnonce0 ) ] --> [ Random0( ~devnonce0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Provision:
+   [ Fr( ~deveui ), Fr( ~joineui ), Fr( ~appkey ), Fr( ~devaddr ) ]
+  --[ CreateAssociation( ~deveui, ~joineui, ~appkey ) ]->
+   [
+   !DeviceReady( ~deveui, ~joineui, ~appkey ),
+   !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ),
+   !Ltk( ~deveui, ~appkey ), !Ltk( ~joineui, ~appkey )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RevLtk:
+   [ !Ltk( A, k ) ] --[ RevLtk( A ) ]-> [ Out( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) DeviceSendJoinRequest:
+   [ !DeviceReady( ~deveui, ~joineui, ~appkey ), Random0( ~devnonce ) ]
+  --[
+  SendJoinRequest( ~deveui, ~joineui, ~appkey, ~devnonce ),
+  DevStarted( ~deveui, ~joineui, ~appkey, ~devnonce )
+  ]->
+   [
+   Out( <'JoinRequest', ~deveui, ~joineui, ~devnonce, 
+         mac(~appkey, <'JoinRequest', ~deveui, ~joineui, ~devnonce>)>
+   ),
+   DeviceSendJoinRequest( ~deveui, ~joineui, ~devnonce, ~appkey )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) NetworkRecvJoinRequest:
+   [
+   !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ),
+   In( <'JoinRequest', ~deveui, ~joineui, devnonce, m> ),
+   Random1( ~joinnonce )
+   ]
+  --[
+  Eq( verif_mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce>, m),
+      true
+  ),
+  RecvJoinRequest( ~deveui, ~joineui, devnonce ),
+  SendJoinAccept( ~deveui, ~joineui, ~appkey, devnonce, ~joinnonce,
+                  ~devaddr
+  ),
+  NetStarted( ~deveui, ~joineui, ~appkey, devnonce, ~joinnonce ),
+  NetEnded( ~deveui, ~joineui, ~appkey, devnonce, ~joinnonce ),
+  NetEndedKeys( ~deveui, ~joineui,
+                senc(<cst1, devnonce, ~joinnonce>, ~appkey),
+                senc(<cst2, devnonce, ~joinnonce>, ~appkey)
+  ),
+  NetworkDeriveKeys( ~deveui, ~joineui, ~devaddr, devnonce, ~joinnonce,
+                     ~appkey, senc(<cst1, devnonce, ~joinnonce>, ~appkey),
+                     senc(<cst2, devnonce, ~joinnonce>, ~appkey)
+  )
+  ]->
+   [
+   Out( senc(<'JoinAccept', ~joinnonce, ~devaddr, 
+              mac(~appkey, <'JoinAccept', ~joinnonce, ~devaddr>)>,
+             ~appkey)
+   )
+   ]
+
+  /*
+  rule (modulo AC) NetworkRecvJoinRequest:
+     [
+     !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ),
+     In( <'JoinRequest', ~deveui, ~joineui, devnonce, m> ),
+     Random1( ~joinnonce )
+     ]
+    --[
+    Eq( z, true ), RecvJoinRequest( ~deveui, ~joineui, devnonce ),
+    SendJoinAccept( ~deveui, ~joineui, ~appkey, devnonce, ~joinnonce,
+                    ~devaddr
+    ),
+    NetStarted( ~deveui, ~joineui, ~appkey, devnonce, ~joinnonce ),
+    NetEnded( ~deveui, ~joineui, ~appkey, devnonce, ~joinnonce ),
+    NetEndedKeys( ~deveui, ~joineui,
+                  senc(<cst1, devnonce, ~joinnonce>, ~appkey),
+                  senc(<cst2, devnonce, ~joinnonce>, ~appkey)
+    ),
+    NetworkDeriveKeys( ~deveui, ~joineui, ~devaddr, devnonce, ~joinnonce,
+                       ~appkey, senc(<cst1, devnonce, ~joinnonce>, ~appkey),
+                       senc(<cst2, devnonce, ~joinnonce>, ~appkey)
+    )
+    ]->
+     [
+     Out( senc(<'JoinAccept', ~joinnonce, ~devaddr, 
+                mac(~appkey, <'JoinAccept', ~joinnonce, ~devaddr>)>,
+               ~appkey)
+     )
+     ]
+    variants (modulo AC)
+    1. ~appkey
+             = ~appkey.17
+       ~deveui
+             = ~deveui.19
+       ~joineui
+             = ~joineui.20
+       devnonce
+             = devnonce.22
+       m     = mac(~appkey.17,
+                   <'JoinRequest', ~deveui.19, ~joineui.20, devnonce.22>)
+       z     = true
+    
+    2. ~appkey
+             = ~appkey.18
+       ~deveui
+             = ~deveui.20
+       ~joineui
+             = ~joineui.21
+       devnonce
+             = devnonce.23
+       m     = m.24
+       z     = verif_mac(~appkey.18,
+                         <'JoinRequest', ~deveui.20, ~joineui.21, devnonce.23>, m.24)
+  */
+
+rule (modulo E) DeviceRecvJoinAccept:
+   [
+   DeviceSendJoinRequest( ~deveui, ~joineui, ~devnonce, ~appkey ),
+   In( senc(<'JoinAccept', joinnonce, devaddr, mm>, ~appkey) )
+   ]
+  --[
+  Eq( verif_mac(~appkey, <'JoinAccept', joinnonce, devaddr>, mm), true ),
+  RecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce, joinnonce, devaddr
+  )
+  ]->
+   [
+   DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce, joinnonce,
+                         devaddr
+   )
+   ]
+
+  /*
+  rule (modulo AC) DeviceRecvJoinAccept:
+     [
+     DeviceSendJoinRequest( ~deveui, ~joineui, ~devnonce, ~appkey ),
+     In( senc(<'JoinAccept', joinnonce, devaddr, mm>, ~appkey) )
+     ]
+    --[
+    Eq( z, true ),
+    RecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce, joinnonce, devaddr
+    )
+    ]->
+     [
+     DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce, joinnonce,
+                           devaddr
+     )
+     ]
+    variants (modulo AC)
+    1. ~appkey
+             = ~appkey.11
+       devaddr
+             = devaddr.15
+       joinnonce
+             = joinnonce.16
+       mm    = mm.17
+       z     = verif_mac(~appkey.11, <'JoinAccept', joinnonce.16, devaddr.15>,
+                         mm.17)
+    
+    2. ~appkey
+             = ~appkey.16
+       devaddr
+             = devaddr.20
+       joinnonce
+             = joinnonce.21
+       mm    = mac(~appkey.16, <'JoinAccept', joinnonce.21, devaddr.20>)
+       z     = true
+  */
+
+rule (modulo E) DeviceDeriveKeys:
+   [
+   DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce, joinnonce,
+                         devaddr
+   )
+   ]
+  --[
+  DeviceDeriveKeys( ~deveui, ~joineui, ~devnonce, joinnonce, devaddr,
+                    ~appkey, senc(<cst1, ~devnonce, joinnonce>, ~appkey),
+                    senc(<cst2, ~devnonce, joinnonce>, ~appkey)
+  ),
+  DevEnded( ~deveui, ~joineui, ~appkey, ~devnonce, joinnonce ),
+  DevEndedKeys( ~deveui, ~joineui,
+                senc(<cst1, ~devnonce, joinnonce>, ~appkey),
+                senc(<cst2, ~devnonce, joinnonce>, ~appkey)
+  )
+  ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+restriction Eq:
+  "∀ a b #i. (Eq( a, b ) @ #i) ⇒ (a = b)"
+  // safety formula
+
+lemma step1:
+  exists-trace
+  "∃ deveui joineui appkey devnonce #i #j.
+    (SendJoinRequest( deveui, joineui, appkey, devnonce ) @ #i) ∧
+    (RecvJoinRequest( deveui, joineui, devnonce ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ deveui joineui appkey devnonce #i #j.
+  (SendJoinRequest( deveui, joineui, appkey, devnonce ) @ #i) ∧
+  (RecvJoinRequest( deveui, joineui, devnonce ) @ #j)"
+*/
+simplify
+solve( !DeviceReady( ~deveui, ~joineui, ~appkey ) ▶₀ #i )
+  case Provision
+  solve( Random0( ~devnonce ) ▶₁ #i )
+    case GenRandom0
+    solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey.1 ) ▶₀ #j )
+      case Provision
+      solve( Random1( ~joinnonce ) ▶₂ #j )
+        case GenRandom1
+        solve( !KU( ~deveui ) @ #vk.3 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~joineui ) @ #vk.5 )
+            case DeviceSendJoinRequest
+            solve( !KU( ~devnonce ) @ #vk.7 )
+              case DeviceSendJoinRequest
+              solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, ~devnonce>)
+                     ) @ #vk.8 )
+                case DeviceSendJoinRequest
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma step2:
+  exists-trace
+  "∃ deveui joineui devnonce joinnonce appkey devaddr #i #j.
+    (SendJoinAccept( deveui, joineui, appkey, devnonce, joinnonce, devaddr
+     ) @ #i) ∧
+    (RecvJoinAccept( deveui, joineui, appkey, devnonce, joinnonce, devaddr
+     ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ deveui joineui devnonce joinnonce appkey devaddr #i #j.
+  (SendJoinAccept( deveui, joineui, appkey, devnonce, joinnonce, devaddr
+   ) @ #i) ∧
+  (RecvJoinAccept( deveui, joineui, appkey, devnonce, joinnonce, devaddr
+   ) @ #j)"
+*/
+simplify
+solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+  case Provision
+  solve( Random1( ~joinnonce ) ▶₂ #i )
+    case GenRandom1
+    solve( DeviceSendJoinRequest( ~deveui, ~joineui, ~devnonce, ~appkey
+           ) ▶₀ #j )
+      case DeviceSendJoinRequest
+      solve( !KU( ~deveui ) @ #vk.3 )
+        case DeviceSendJoinRequest
+        solve( !KU( ~joineui ) @ #vk.5 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~devnonce ) @ #vk.7 )
+            case DeviceSendJoinRequest
+            solve( !KU( senc(<'JoinAccept', ~joinnonce, ~devaddr, 
+                              mac(~appkey, <'JoinAccept', ~joinnonce, ~devaddr>)>,
+                             ~appkey)
+                   ) @ #vk.9 )
+              case NetworkRecvJoinRequest
+              solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, ~devnonce>)
+                     ) @ #vk.9 )
+                case DeviceSendJoinRequest
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma protocol_completion:
+  exists-trace
+  "∃ deveui joineui devaddr devnonce joinnonce appkey appskey nwkskey #i
+     #j.
+    (NetworkDeriveKeys( deveui, joineui, devaddr, devnonce, joinnonce,
+                        appkey, appskey, nwkskey
+     ) @ #i) ∧
+    (DeviceDeriveKeys( deveui, joineui, devnonce, joinnonce, devaddr, appkey,
+                       appskey, nwkskey
+     ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ deveui joineui devaddr devnonce joinnonce appkey appskey nwkskey #i
+   #j.
+  (NetworkDeriveKeys( deveui, joineui, devaddr, devnonce, joinnonce,
+                      appkey, appskey, nwkskey
+   ) @ #i) ∧
+  (DeviceDeriveKeys( deveui, joineui, devnonce, joinnonce, devaddr, appkey,
+                     appskey, nwkskey
+   ) @ #j)"
+*/
+simplify
+solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+  case Provision
+  solve( Random1( ~joinnonce ) ▶₂ #i )
+    case GenRandom1
+    solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                                 ~joinnonce, ~devaddr
+           ) ▶₀ #j )
+      case DeviceRecvJoinAccept
+      solve( !KU( ~deveui ) @ #vk.3 )
+        case DeviceSendJoinRequest
+        solve( !KU( ~joineui ) @ #vk.5 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~devnonce ) @ #vk.7 )
+            case DeviceSendJoinRequest
+            solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, ~devnonce>)
+                   ) @ #vk.8 )
+              case DeviceSendJoinRequest
+              solve( !KU( senc(<'JoinAccept', ~joinnonce, ~devaddr, 
+                                mac(~appkey, <'JoinAccept', ~joinnonce, ~devaddr>)>,
+                               ~appkey)
+                     ) @ #vk.9 )
+                case NetworkRecvJoinRequest
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma s_inj_agree_simple_device:
+  all-traces
+  "∀ deveui joineui appkey devnonce joinnonce #i.
+    (DevEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i) ⇒
+    (((∃ #j.
+        ((NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #j) ∧
+         (#j < #i)) ∧
+        (¬(∃ deveui2 joineui2 #i2.
+            (DevEnded( joineui2, deveui2, appkey, devnonce, joinnonce ) @ #i2) ∧
+            (¬(#i2 = #i))))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appkey devnonce joinnonce #i.
+  (DevEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i)
+ ∧
+  (∀ #j.
+    (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ deveui2 joineui2 #i2.
+       (DevEnded( joineui2, deveui2, appkey, devnonce, joinnonce ) @ #i2)
+      ∧
+       ¬(#i2 = #i)))) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                             joinnonce, devaddr
+       ) ▶₀ #i )
+  case DeviceRecvJoinAccept
+  solve( !KU( senc(<'JoinAccept', joinnonce, devaddr, 
+                    mac(~appkey, <'JoinAccept', joinnonce, devaddr>)>,
+                   ~appkey)
+         ) @ #vk )
+    case NetworkRecvJoinRequest
+    solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce.1>)
+           ) @ #vk.9 )
+      case DeviceSendJoinRequest
+      solve( !KU( ~deveui ) @ #vk.5 )
+        case DeviceSendJoinRequest
+        solve( !KU( ~joineui ) @ #vk.8 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~devnonce.1 ) @ #vk.9 )
+            case DeviceSendJoinRequest
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma s_inj_agree_simple_network:
+  all-traces
+  "∀ deveui joineui appkey devnonce joinnonce #i.
+    (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i) ⇒
+    (((∃ #j.
+        ((DevStarted( deveui, joineui, appkey, devnonce ) @ #j) ∧ (#j < #i)) ∧
+        (¬(∃ joineui2 deveui2 joinnonce2 #i2.
+            (NetEnded( joineui2, deveui2, appkey, devnonce, joinnonce2 ) @ #i2) ∧
+            (¬(#i2 = #i))))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appkey devnonce joinnonce #i.
+  (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i)
+ ∧
+  (∀ #j.
+    (DevStarted( deveui, joineui, appkey, devnonce ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ joineui2 deveui2 joinnonce2 #i2.
+       (NetEnded( joineui2, deveui2, appkey, devnonce, joinnonce2 ) @ #i2)
+      ∧
+       ¬(#i2 = #i)))) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+  case Provision
+  solve( Random1( ~joinnonce ) ▶₂ #i )
+    case GenRandom1
+    solve( !KU( ~deveui ) @ #vk.3 )
+      case DeviceSendJoinRequest
+      solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce>)
+             ) @ #vk.8 )
+        case DeviceSendJoinRequest
+        solve( (#i2 < #i)  ∥ (#i < #i2) )
+          case case_1
+          solve( !NetworkReady( ~deveui.1, ~joineui.1, ~devaddr.1, ~appkey
+                 ) ▶₀ #i2 )
+            case Provision
+            solve( Random1( ~joinnonce.1 ) ▶₂ #i2 )
+              case GenRandom1
+              solve( !KU( ~joineui ) @ #vk.7 )
+                case DeviceSendJoinRequest
+                solve( !KU( ~devnonce ) @ #vk.8 )
+                  case DeviceSendJoinRequest
+                  SOLVED // trace found
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma s_noninj_agree_simple_device:
+  all-traces
+  "∀ deveui joineui appkey devnonce joinnonce #i.
+    (DevEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i) ⇒
+    (((∃ #j.
+        (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #j) ∧
+        (#j < #i)) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appkey devnonce joinnonce #i.
+  (DevEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i)
+ ∧
+  (∀ #j.
+    (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #j)
+   ⇒
+    ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                             joinnonce, devaddr
+       ) ▶₀ #i )
+  case DeviceRecvJoinAccept
+  solve( !KU( senc(<'JoinAccept', joinnonce, devaddr, 
+                    mac(~appkey, <'JoinAccept', joinnonce, devaddr>)>,
+                   ~appkey)
+         ) @ #vk )
+    case NetworkRecvJoinRequest
+    solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce.1>)
+           ) @ #vk.9 )
+      case DeviceSendJoinRequest
+      solve( !KU( ~deveui ) @ #vk.5 )
+        case DeviceSendJoinRequest
+        solve( !KU( ~joineui ) @ #vk.8 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~devnonce.1 ) @ #vk.9 )
+            case DeviceSendJoinRequest
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma s_noninj_agree_simple_network:
+  all-traces
+  "∀ deveui joineui appkey devnonce joinnonce #i.
+    (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i) ⇒
+    (((∃ #j.
+        (DevStarted( deveui, joineui, appkey, devnonce ) @ #j) ∧ (#j < #i)) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appkey devnonce joinnonce #i.
+  (NetEnded( deveui, joineui, appkey, devnonce, joinnonce ) @ #i)
+ ∧
+  (∀ #j.
+    (DevStarted( deveui, joineui, appkey, devnonce ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+  case Provision
+  solve( Random1( ~joinnonce ) ▶₂ #i )
+    case GenRandom1
+    solve( !KU( ~deveui ) @ #vk.3 )
+      case DeviceSendJoinRequest
+      solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce>)
+             ) @ #vk.8 )
+        case DeviceSendJoinRequest
+        by contradiction /* from formulas */
+      next
+        case c_mac
+        solve( !KU( ~appkey ) @ #vk.12 )
+          case RevLtk_case_1
+          by contradiction /* from formulas */
+        next
+          case RevLtk_case_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma s_inj_agree_keys:
+  all-traces
+  "∀ deveui joineui appskey nwkskey #i.
+    (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i) ⇒
+    (((∃ #j.
+        ((NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #j) ∧ (#j < #i)) ∧
+        (¬(∃ #i2.
+            (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i2) ∧
+            (¬(#i2 = #i))))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appskey nwkskey #i.
+  (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i)
+ ∧
+  (∀ #j.
+    (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ #i2.
+       (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i2)
+      ∧
+       ¬(#i2 = #i)))) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                             joinnonce, devaddr
+       ) ▶₀ #i )
+  case DeviceRecvJoinAccept
+  solve( !KU( senc(<'JoinAccept', joinnonce, devaddr, 
+                    mac(~appkey, <'JoinAccept', joinnonce, devaddr>)>,
+                   ~appkey)
+         ) @ #vk )
+    case NetworkRecvJoinRequest
+    solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce.1>)
+           ) @ #vk.9 )
+      case DeviceSendJoinRequest
+      solve( !KU( ~deveui ) @ #vk.5 )
+        case DeviceSendJoinRequest
+        solve( !KU( ~joineui ) @ #vk.8 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~devnonce.1 ) @ #vk.9 )
+            case DeviceSendJoinRequest
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma s_noninj_agree_keys:
+  all-traces
+  "∀ deveui joineui appskey nwkskey #i.
+    (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i) ⇒
+    (((∃ #j.
+        (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #j) ∧ (#j < #i)) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appskey nwkskey #i.
+  (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i)
+ ∧
+  (∀ #j.
+    (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                             joinnonce, devaddr
+       ) ▶₀ #i )
+  case DeviceRecvJoinAccept
+  solve( !KU( senc(<'JoinAccept', joinnonce, devaddr, 
+                    mac(~appkey, <'JoinAccept', joinnonce, devaddr>)>,
+                   ~appkey)
+         ) @ #vk )
+    case NetworkRecvJoinRequest
+    solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce.1>)
+           ) @ #vk.9 )
+      case DeviceSendJoinRequest
+      solve( !KU( ~deveui ) @ #vk.5 )
+        case DeviceSendJoinRequest
+        solve( !KU( ~joineui ) @ #vk.8 )
+          case DeviceSendJoinRequest
+          solve( !KU( ~devnonce.1 ) @ #vk.9 )
+            case DeviceSendJoinRequest
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma keys_freshness_network:
+  all-traces
+  "∀ deveui joineui appskey nwkskey #i.
+    (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i) ⇒
+    (((¬(∃ deveui2 joineui2 #j.
+          (NetEndedKeys( deveui2, joineui2, appskey, nwkskey ) @ #j) ∧
+          (¬(#i = #j)))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appskey nwkskey #i.
+  (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i)
+ ∧
+  (∃ deveui2 joineui2 #j.
+    (NetEndedKeys( deveui2, joineui2, appskey, nwkskey ) @ #j)
+   ∧
+    ¬(#i = #j)) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+    case Provision
+    solve( Random1( ~joinnonce ) ▶₂ #i )
+      case GenRandom1
+      solve( !NetworkReady( ~deveui.1, ~joineui.1, ~devaddr.1, ~appkey
+             ) ▶₀ #j )
+        case Provision
+        solve( Random1( ~joinnonce ) ▶₂ #j )
+          case GenRandom1
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case case_2
+  solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+    case Provision
+    solve( Random1( ~joinnonce ) ▶₂ #i )
+      case GenRandom1
+      solve( !NetworkReady( ~deveui.1, ~joineui.1, ~devaddr.1, ~appkey
+             ) ▶₀ #j )
+        case Provision
+        solve( Random1( ~joinnonce ) ▶₂ #j )
+          case GenRandom1
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma keys_freshness_device:
+  all-traces
+  "∀ deveui joineui appskey nwkskey #i.
+    (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i) ⇒
+    (((¬(∃ deveui2 joineui2 #j.
+          (DevEndedKeys( deveui2, joineui2, appskey, nwkskey ) @ #j) ∧
+          (¬(#i = #j)))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appskey nwkskey #i.
+  (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i)
+ ∧
+  (∃ deveui2 joineui2 #j.
+    (DevEndedKeys( deveui2, joineui2, appskey, nwkskey ) @ #j)
+   ∧
+    ¬(#i = #j)) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                               joinnonce, devaddr
+         ) ▶₀ #i )
+    case DeviceRecvJoinAccept
+    solve( DeviceRecvJoinAccept( ~deveui.1, ~joineui.1, ~appkey, ~devnonce,
+                                 joinnonce, devaddr.1
+           ) ▶₀ #j )
+      case DeviceRecvJoinAccept
+      by contradiction /* cyclic */
+    qed
+  qed
+next
+  case case_2
+  solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                               joinnonce, devaddr
+         ) ▶₀ #i )
+    case DeviceRecvJoinAccept
+    solve( DeviceRecvJoinAccept( ~deveui.1, ~joineui.1, ~appkey, ~devnonce,
+                                 joinnonce, devaddr.1
+           ) ▶₀ #j )
+      case DeviceRecvJoinAccept
+      by contradiction /* cyclic */
+    qed
+  qed
+qed
+
+lemma weaksecret_device:
+  all-traces
+  "∀ deveui joineui appskey nwkskey #i.
+    (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i) ⇒
+    (((¬((∃ #j. K( appskey ) @ #j) ∨ (∃ #k. K( nwkskey ) @ #k))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appskey nwkskey #i.
+  (DevEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i)
+ ∧
+  (((∃ #j. (K( appskey ) @ #j)) ∨ (∃ #k. (K( nwkskey ) @ #k)))) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (∃ #j. (K( senc(<cst1, ~devnonce, joinnonce>, ~appkey) ) @ #j))  ∥
+       (∃ #k. (K( senc(<cst2, ~devnonce, joinnonce>, ~appkey) ) @ #k)) )
+  case case_1
+  solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                               joinnonce, devaddr
+         ) ▶₀ #i )
+    case DeviceRecvJoinAccept
+    solve( !KU( senc(<cst1, ~devnonce, joinnonce>, ~appkey) ) @ #vk )
+      case c_senc
+      solve( !KU( ~appkey ) @ #vk.3 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+next
+  case case_2
+  solve( DeviceRecvJoinAccept( ~deveui, ~joineui, ~appkey, ~devnonce,
+                               joinnonce, devaddr
+         ) ▶₀ #i )
+    case DeviceRecvJoinAccept
+    solve( !KU( senc(<cst2, ~devnonce, joinnonce>, ~appkey) ) @ #vk )
+      case c_senc
+      solve( !KU( ~appkey ) @ #vk.3 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+lemma weaksecret_network:
+  all-traces
+  "∀ deveui joineui appskey nwkskey #i.
+    (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i) ⇒
+    (((¬((∃ #j. K( appskey ) @ #j) ∨ (∃ #k. K( nwkskey ) @ #k))) ∨
+      (∃ #r. RevLtk( deveui ) @ #r)) ∨
+     (∃ #r. RevLtk( joineui ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ deveui joineui appskey nwkskey #i.
+  (NetEndedKeys( deveui, joineui, appskey, nwkskey ) @ #i)
+ ∧
+  (((∃ #j. (K( appskey ) @ #j)) ∨ (∃ #k. (K( nwkskey ) @ #k)))) ∧
+  (∀ #r. (RevLtk( deveui ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( joineui ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (∃ #j. (K( senc(<cst1, devnonce, ~joinnonce>, ~appkey) ) @ #j))  ∥
+       (∃ #k. (K( senc(<cst2, devnonce, ~joinnonce>, ~appkey) ) @ #k)) )
+  case case_1
+  solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+    case Provision
+    solve( Random1( ~joinnonce ) ▶₂ #i )
+      case GenRandom1
+      solve( !KU( ~deveui ) @ #vk.3 )
+        case DeviceSendJoinRequest
+        solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce>)
+               ) @ #vk.8 )
+          case DeviceSendJoinRequest
+          solve( !KU( senc(<cst1, ~devnonce, ~joinnonce>, ~appkey) ) @ #vk.9 )
+            case c_senc
+            solve( !KU( ~appkey ) @ #vk.12 )
+              case RevLtk_case_1
+              by contradiction /* from formulas */
+            next
+              case RevLtk_case_2
+              by contradiction /* from formulas */
+            qed
+          qed
+        next
+          case c_mac
+          solve( !KU( ~appkey ) @ #vk.13 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          qed
+        qed
+      qed
+    qed
+  qed
+next
+  case case_2
+  solve( !NetworkReady( ~deveui, ~joineui, ~devaddr, ~appkey ) ▶₀ #i )
+    case Provision
+    solve( Random1( ~joinnonce ) ▶₂ #i )
+      case GenRandom1
+      solve( !KU( ~deveui ) @ #vk.3 )
+        case DeviceSendJoinRequest
+        solve( !KU( mac(~appkey, <'JoinRequest', ~deveui, ~joineui, devnonce>)
+               ) @ #vk.8 )
+          case DeviceSendJoinRequest
+          solve( !KU( senc(<cst2, ~devnonce, ~joinnonce>, ~appkey) ) @ #vk.9 )
+            case c_senc
+            solve( !KU( ~appkey ) @ #vk.12 )
+              case RevLtk_case_1
+              by contradiction /* from formulas */
+            next
+              case RevLtk_case_2
+              by contradiction /* from formulas */
+            qed
+          qed
+        next
+          case c_mac
+          solve( !KU( ~appkey ) @ #vk.13 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-01-20 17:15:39.562956625 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: lorawan_10_basic.spthy
+
+  processing time: 1.65s
+  
+  step1 (exists-trace): verified (10 steps)
+  step2 (exists-trace): verified (10 steps)
+  protocol_completion (exists-trace): verified (10 steps)
+  s_inj_agree_simple_device (all-traces): falsified - found trace (8 steps)
+  s_inj_agree_simple_network (all-traces): falsified - found trace (11 steps)
+  s_noninj_agree_simple_device (all-traces): falsified - found trace (8 steps)
+  s_noninj_agree_simple_network (all-traces): verified (9 steps)
+  s_inj_agree_keys (all-traces): falsified - found trace (8 steps)
+  s_noninj_agree_keys (all-traces): falsified - found trace (8 steps)
+  keys_freshness_network (all-traces): verified (12 steps)
+  keys_freshness_device (all-traces): verified (8 steps)
+  weaksecret_device (all-traces): verified (12 steps)
+  weaksecret_network (all-traces): verified (24 steps)
+
+==============================================================================

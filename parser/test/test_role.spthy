@@ -1,0 +1,13 @@
+theory TestRole
+begin
+
+rule A1:
+    [Random('A', ~n)] --[LblA1(~n)]-> [Out(~n)]
+
+rule B1:
+    [In(~n1), Random('B', ~n)] --[LblB1(~n)]-> [Out(~n)]
+
+rule A2:
+    [In(~n2), Random('A', ~n)] --[LblA2(~n)]-> [Out(~n)]
+
+end

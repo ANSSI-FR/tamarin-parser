@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Upload Result</h2>
+<form action = "/result" method = "POST" 
+   enctype = "multipart/form-data">
+    <label for="model">Result for the model:</label>
+    <select name="model" id="model">
+    </select>
+    <br />
+
+    <label for="submodel">Submodel:</label>
+    <select name="submodel" id="submodel">
+    </select>
+    <br />
+
+    <label for="option">Option:</label>
+    <select name="option" id="option">
+    </select>
+    <br />
+
+   <input type = "file" name = "file" accept=".spthy"/>
+   <input type = "submit"/>
+</form>
+
+<script type=text/javascript>
+    var data ={{ data|tojson|safe }};
+
+    function update_model() {
+        let model_container = document.getElementById("model");
+        
+        let elt = {};
+        for (let i = 0; i < data.length; i++) {
+            elt = data[i];
+            if (elt.uuid == model_container.value) {
+                break;
+            }
+        }
+        
+        if (elt === {}) {
+            return;
+        }
+
+        let submodels = "";
+        for (let i = 0; i < elt.models.length; i++) {
+            let sub = elt.models[i];
+            let opt = "<option value=\""+sub.uuid+"\">"+sub.name+" - "+sub.uuid+"</option>\n";
+            submodels += opt;
+        }
+        document.getElementById("submodel").innerHTML = submodels;
+
+        let options = "";
+        for (let i = 0; i < elt.options.length; i++) {
+            let opt = elt.options[i];
+            let o = "<option value=\""+opt+"\">"+opt+"</option>\n";
+            options += o;
+        }
+        document.getElementById("option").innerHTML = options;
+    }
+    
+    function populate_model() {
+        let model_container = document.getElementById("model");
+        let options = "";
+        for (let i = 0; i < data.length; i++) {
+            let elt = data[i];
+            let opt = "<option value=\""+elt.uuid+"\">"+elt.name+" - "+elt.uuid+"</option>\n";
+            options += opt;
+        }
+        model_container.innerHTML = options;
+
+        update_model();
+    }
+
+    document.getElementById("submodel").addEventListener("onchange", update_model);
+    populate_model();
+</script>
+
+</body>
+</html>

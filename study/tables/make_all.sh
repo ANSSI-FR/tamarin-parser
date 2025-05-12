@@ -1,0 +1,21 @@
+pdflatex table_979824_randomized_keyleak.tex
+pdflatex table_979824_randomized_messleak.tex
+pdflatex table_979824_randomized_standard.tex
+pdflatex table_979824.tex
+pdflatex table_979826_randomized_keyleak.tex
+pdflatex table_979826_randomized_messleak.tex
+pdflatex table_979826_randomized_standard.tex
+pdflatex table_979826.tex
+pdflatex table_979834_randomized_nrs.tex
+pdflatex table_979834_randomized_standard.tex
+pdflatex table_979834.tex
+pdflatex table_979844.tex
+pdflatex table_bluetooth_nc.tex
+pdflatex table_dragonfly_nopatch.tex
+pdflatex table_dragonfly_patchreflection.tex
+pdflatex table_lorawan10.tex
+pdflatex table_nslpk.tex
+pdflatex table_wpa2_fresh.tex
+pdflatex table_wpa2_static.tex
+pdflatex table_wpa3.tex
+rm *.aux *.log

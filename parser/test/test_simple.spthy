@@ -1,0 +1,13 @@
+theory TestSimple
+begin
+
+rule A1:
+    [Random(~n)] --[LblA1(~n)]-> [Out(~n)]
+
+rule B1:
+    [In(~n1), Random(~n)] --[LblB1(~n)]-> [Out(~n)]
+
+rule A2:
+    [In(~n2), Random(~n)] --[LblA2(~n)]-> [Out(~n)]
+
+end

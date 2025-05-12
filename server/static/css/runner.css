@@ -1,0 +1,10 @@
+.runner-elt {
+    border: 1px solid;
+    padding-top: 2pt;
+    padding-bottom: 2pt;
+    margin: 5pt;
+}
+.runner-elt > .p {
+    margin-bottom: 0.2rem;
+}
+

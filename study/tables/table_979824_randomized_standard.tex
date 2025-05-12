@@ -1,0 +1,39 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{30cm}{
+\captionof{table}{ Detailed results for ISO 9798-2-4 - Nonces, keys, randomized primitives - Standard }
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_A & IA\_B & NIA\_A & NIA\_B \\ \hline
+No misgeneration & N/A & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $R_B$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $R_A$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $R_B$ & \noattack & \attack & \noattack & \noattack\\ \hline
+Reuse Always & $R_A$ & \attack & \noattack & \attack & \noattack\\ \hline
+Reuse Always & $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $R_B$ & \noattack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $R_A$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $R_A$ & \attack & \noattack & \attack & \noattack\\ \hline
+Reuse Once & $R_A$ = $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_1$ = $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_1$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_2$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+\end{tabular}}
+\end{document}

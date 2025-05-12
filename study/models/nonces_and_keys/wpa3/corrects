@@ -1,0 +1,31 @@
+
++ tamarin-prover --prove=secrecy_pe wpa3_leak_always_0.spthy
+  secrecy_pe (all-traces): falsified - found trace (5 steps)
++ tamarin-prover --prove=secrecy_pe wpa3_leak_always_1.spthy
+  secrecy_pe (all-traces): falsified - found trace (4 steps)
+
++ tamarin-prover --prove=secrecy_pe wpa3_leak_always_2.spthy
+  secrecy_pe (all-traces): falsified - found trace (5 steps)
++ tamarin-prover --prove=secrecy_pe wpa3_leak_always_3.spthy
+  secrecy_pe (all-traces): falsified - found trace (4 steps)
+
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_0_4.spthy
+  secrecy_pe (all-traces): falsified - found trace (10 steps)
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_0_5.spthy
+  secrecy_pe (all-traces): falsified - found trace (8 steps)
+
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_1_4.spthy
+  secrecy_pe (all-traces): falsified - found trace (9 steps)
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_1_5.spthy
+  secrecy_pe (all-traces): falsified - found trace (7 steps)
+
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_2_4.spthy
+  secrecy_pe (all-traces): falsified - found trace (10 steps)
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_2_5.spthy
+  secrecy_pe (all-traces): falsified - found trace (11 steps)
+
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_3_4.spthy
+  secrecy_pe (all-traces): falsified - found trace (9 steps)
++ tamarin-prover --prove=secrecy_pe wpa3_reuse_once_3_5.spthy
+  secrecy_pe (all-traces): falsified - found trace (10 steps)
+

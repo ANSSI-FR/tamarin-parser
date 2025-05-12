@@ -1,0 +1,35 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{30cm}{
+\captionof{table}{ Detailed results for Bluetooth Secure Numeric Comparison - Nonces and keys }
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_I & IA\_R & NIA\_I & NIA\_R & IAK\_I & IAK\_R & NIAK\_I & NIAK\_R & S\_I & S\_R & KF\_I & KF\_R \\ \hline
+No misgeneration & N/A & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $sk_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $sk_r$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $N_r$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Leak Always & $N_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Always & $sk_i$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $sk_r$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $N_r$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Always & $N_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_i$ = $sk_i$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_i$ = $sk_r$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_i$ = $N_r$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_i$ = $N_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_r$ = $sk_r$ & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_r$ = $N_r$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $sk_r$ = $N_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $N_r$ = $N_r$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $N_r$ = $N_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $N_i$ = $N_i$ & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \attack & \noattack & \noattack\\ \hline
+\end{tabular}}
+\end{document}

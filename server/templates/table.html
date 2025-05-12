@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Model execution</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.min.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/runner.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/table_results.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/results.css") }}">
+	</head>
+	<body>
+<div class="container">
+			<div class="text-center">
+		<h1>Results table</h1>
+
+		<h3><a href="/{{model.uuid}}/file">{{ model.orig_filename }}</a></h3>
+			</div>
+        <h4>Lemma legend</h4>
+        <ul>
+            {% for lemma in lemmas %}
+            <li>{% if lemma.short_name != "" %}{{ lemma.short_name }}{% else %}{{ lemma.name }}{% endif %} = {{ lemma.name }} ({{ lemma.type }}) ----- {% if not lemma.enabled %}<u>NOT</u>{% endif %} displayed</li> 
+            {% endfor %}
+        </ul>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Protocol</th>
+                <th>Option</th>
+                <th>Misuse case</th>
+                <th>Misuse nonce</th>
+                {% for lemma in lemmas %}
+                {% if lemma.enabled %}
+                    <th>{% if lemma.short_name != "" %}{{ lemma.short_name }}{% else %}{{ lemma.name }}{% endif %}</th>
+                {% endif %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for option in data.options %}
+            {% for submodel in option.submodels %}
+        
+        <tr>
+            <td> {% if submodel.results_uuid %}<a href="/{{ submodel.results_uuid }}/file">{% endif %}{{ submodel.model_filepath }}{% if submodel.results_uuid %}</a>{% endif %}</td>
+            <td> {{ option.option }} </td>
+            <td> {{ submodel.misuse_type }} </td>
+            <td> {{ submodel.misused_nonce }} </td>
+                {% for result in submodel.results %}
+            <td>{% if result.value %}<span class="checkmark"></span>{% else %}<span class="koglyph"></span>{% endif %}</td>
+                {% endfor %}
+        </tr>
+            {% endfor %}
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+
+

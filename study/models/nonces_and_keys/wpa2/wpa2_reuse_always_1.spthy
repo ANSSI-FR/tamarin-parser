@@ -1,0 +1,249 @@
+theory 4WayHandshake_wpa2_reuse_always_1
+begin
+
+builtins: hashing
+
+functions: mac/2,
+		verif/3,
+		true/0
+
+rule MisgenerateRandoms:
+	[
+		Fr(~SNonce1)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		!Random1(~SNonce1)
+	]
+
+rule GenRandom0:
+	[
+		Fr(~ANonce0)
+	]
+	-->
+	[
+		Random0(~ANonce0)
+	]
+
+#ifdef FreshKey
+#else
+functions: staticpsk/0[private]
+
+#endif
+equations: verif(mac(m, k), m, k) = true
+
+#ifdef FreshKey
+rule CreateSession:
+	[
+		In(< $AP, $Client >),
+		Fr(~staticpsk)
+	]
+	-->
+	[
+		APReady($AP, $Client, ~staticpsk),
+		ClientReady($AP, $Client, ~staticpsk),
+		!Ltk($AP, ~staticpsk),
+		!Ltk($Client, ~staticpsk)
+	]
+
+#else
+rule CreateSession:
+	[
+		In(< $AP, $Client >)
+	]
+	-->
+	[
+		APReady($AP, $Client, staticpsk),
+		ClientReady($AP, $Client, staticpsk),
+		!Ltk($AP, staticpsk),
+		!Ltk($Client, staticpsk)
+	]
+
+#endif
+rule RevLtk:
+	[
+		!Ltk(A, k)
+	]
+	--[
+		RevLtk()
+	]->
+	[
+		Out(k)
+	]
+
+rule APCreateSession:
+	[
+		APReady($AP, $Client, psk),
+		Random0(~ANonce)
+	]
+	--[
+		APStart()
+	]->
+	[
+		APSentRandom($AP, $Client, psk, ~ANonce),
+		Out(< '1', ~ANonce >)
+	]
+
+rule ClientCreateSession:
+	let
+		ptk = h($AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', h(psk))
+	in
+	[
+		ClientReady($AP, $Client, psk),
+		In(ANonce),
+		!Random1(~SNonce)
+	]
+	--[
+		ClientStart(),
+		ClientStarted($AP, $Client, ~SNonce, ANonce),
+		ClientStartedKeys($AP, $Client, ptk)
+	]->
+	[
+		ClientSentRandom($AP, $Client, ~SNonce, ANonce, ptk),
+		Out(< < '2', ~SNonce >, mac(< '2', ~SNonce >, ptk) >)
+	]
+
+rule APRecvMsg2:
+	let
+		ptk = h($AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', h(psk))
+	in
+	[
+		In(< < '2', SNonce >, m >),
+		APSentRandom($AP, $Client, psk, ~ANonce)
+	]
+	--[
+		Eq(verif(m, < '2', SNonce >, ptk), true),
+		LblRecvMsg2(),
+		LblAPSentMsg3($AP, $Client, SNonce, ~ANonce, ptk),
+		APStarted($AP, $Client, SNonce, ~ANonce),
+		APStartedKeys($AP, $Client, ptk)
+	]->
+	[
+		APSentMsg3($AP, $Client, psk, SNonce, ~ANonce, ptk),
+		Out(< < '3', ~ANonce >, mac(< '3', ~ANonce >, ptk) >)
+	]
+
+rule ClientRecvMsg3:
+	[
+		ClientSentRandom($AP, $Client, ~SNonce, ANonce, ptk),
+		In(< < '3', ANonce >, m >)
+	]
+	--[
+		Eq(verif(m, < '3', ANonce >, ptk), true),
+		LblClientSentMsg4($AP, $Client, ~SNonce, ANonce, ptk),
+		LblRecvMsg3(),
+		ClientEnded($AP, $Client, ~SNonce, ANonce),
+		ClientEndedKeys($AP, $Client, ptk)
+	]->
+	[
+		ClientSentMsg4($AP, $Client, ~SNonce, ANonce, ptk),
+		Out(< < '4', 'End' >, mac(< '4', 'End' >, ptk) >)
+	]
+
+rule APRecvMsg4:
+	[
+		APSentMsg3($AP, $Client, psk, SNonce, ~ANonce, ptk),
+		In(< < '4', 'End' >, m >)
+	]
+	--[
+		Eq(verif(m, < '4', 'End' >, ptk), true),
+		LblAPRecvMsg4($AP, $Client, SNonce, ~ANonce, ptk),
+		LblRecvMsg4(),
+		APEnded($AP, $Client, SNonce, ~ANonce),
+		APEndedKeys($AP, $Client, ptk)
+	]->
+	[
+		APRecvMsg4($AP, $Client, psk, SNonce, ~ANonce, ptk)
+	]
+
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+restriction RestrEq:
+	"All a b #i . 
+	Eq(a, b) @ i ==> a = b"
+
+lemma functional_4way: exists-trace
+" Ex a c snonce anonce ptk #i #j . 
+	LblClientSentMsg4(a, c, snonce, anonce, ptk) @ i & LblAPRecvMsg4(a, c, snonce, anonce, ptk) @ j "
+
+lemma inj_agree_ap:
+" All ap client snonce anonce #i . 
+	APEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	ClientEnded(ap, client, snonce, anonce) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	APEnded(ap2, client2, snonce, anonce) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma inj_agree_client:
+" All ap client snonce anonce #i . 
+	ClientEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	APStarted(ap, client, snonce, anonce) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	ClientEnded(ap2, client2, snonce, anonce) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma noninj_agree_ap:
+" All ap client snonce anonce #i . 
+	APEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	ClientEnded(ap, client, snonce, anonce) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma noninj_agree_client:
+" All ap client snonce anonce #i . 
+	ClientEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	APStarted(ap, client, snonce, anonce) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_inj_agree_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	ClientEndedKeys(ap, client, ptk) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	APEndedKeys(ap2, client2, ptk) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_inj_agree_client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	APStartedKeys(ap, client, ptk) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	ClientEndedKeys(ap2, client2, ptk) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_noninj_agree_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	ClientEndedKeys(ap, client, ptk) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_noninj_agree_client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	APStartedKeys(ap, client, ptk) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma weak_secrecy_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> not (Ex #j . 
+	K(ptk) @ j) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma weak_secrecy_Client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> not (Ex #j . 
+	K(ptk) @ j) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma key_freshness_client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> not (Ex ap2 client2 #j . 
+	ClientEndedKeys(ap2, client2, ptk) @ j & not (#i = #j)) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma key_freshness_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> not (Ex ap2 client2 #j . 
+	APEndedKeys(ap2, client2, ptk) @ j & not (#i = #j)) | (Ex #r . 
+	RevLtk() @ r) "
+
+
+end

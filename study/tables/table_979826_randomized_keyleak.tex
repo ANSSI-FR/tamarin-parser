@@ -1,0 +1,69 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{15cm}{
+\captionof{table}{ Detailed results for ISO 9798-2-6 - Nonces, keys, randomized primitives - NR-A1/Keyleak }
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_A & IA\_B & NIA\_A & NIA\_B \\ \hline
+No misgeneration & N/A & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $R_B$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $R_A$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $k_{AB}$ & \attack & \attack & \attack & \attack\\ \hline
+Leak Always & $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $R_B$ & \noattack & \attack & \noattack & \noattack\\ \hline
+Reuse Always & $R_A$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $k_{AB}$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Always & $n_1$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Always & $n_2$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Always & $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Always & $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $R_B$ & \noattack & \attack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $R_A$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $k_{AB}$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $R_B$ = $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_B$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $R_A$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $k_{AB}$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $R_A$ = $n_1$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_A$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $k_{AB}$ = $k_{AB}$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $k_{AB}$ = $n_1$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $k_{AB}$ = $n_2$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $k_{AB}$ = $R_{A2}$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $k_{AB}$ = $n_3$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $k_{AB}$ = $n_4$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $n_1$ = $n_1$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $n_1$ = $n_2$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_1$ = $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_1$ = $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_1$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_2$ = $n_2$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $n_2$ = $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_2$ = $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_2$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_{A2}$ = $R_{A2}$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_{A2}$ = $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $R_{A2}$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_3$ = $n_3$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_3$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+Reuse Once & $n_4$ = $n_4$ & \noattack & \noattack & \noattack & \noattack\\ \hline
+\end{tabular}}
+\end{document}

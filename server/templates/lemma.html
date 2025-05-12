@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.min.css") }}">
+</head>
+<body>
+
+<h2 class="text-center">Lemmas for {{ model.orig_filename }}</h2>
+<form action = "/{{ model.uuid }}/lemma" method = "POST" 
+   enctype = "multipart/form-data">
+    <div class="container">
+    {% for l in lemmas %}
+    <div class="row">
+        <div class="col-3">
+        <label class="label-text-input">Name: {{ l.name }} ({{ l.type }})</label>
+        <input name="name{{loop.index}}" id="name{{loop.index}}" type="hidden" value="{{ l.name }}"/>
+        </div>
+
+        <div class="col-1"></div>
+        <div class="col-4">
+        <label class="label-text-input" for="shortname{{loop.index}}">Short name: </label>
+        <input class="input-text-input" name="shortname{{loop.index}}" id="shortname{{loop.index}}" type="text" value="{{ l.short_name }}"/>
+        </div>
+        <div class="col-1"></div>
+    
+        <div class="col-1">
+        <label for="enabled{{loop.index}}">Enabled: </label>
+        <input type="checkbox" name="enabled{{loop.index}}" id="enabled{{loop.index}}" {% if l.enabled %}checked{% endif %} />
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+    <div class="row">
+    <div class="col-5"></div>
+    <div class="col-2">
+        <input class="text-center" type="submit"/>
+    </div>
+    </div>
+</form>
+</body>
+</html>

@@ -1,0 +1,1446 @@
+theory ISO9798_2_4_979824_leak_once_0 begin
+
+// Function signature and definition of the equational theory E
+
+builtins: xor
+functions: fst/1, pair/2, sdec/4, senc/4, sid1_mut_cr/0, sid2_mut_cr/0,
+           snd/1
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(k, n, ad, senc(k, m, n, ad)) = m,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+rule (modulo E) MisgenerateRandoms:
+   [ Fr( ~RB0 ) ]
+  --[ MisgenerateOnlyOnce( ) ]->
+   [ Out( ~RB0 ), Random0( ~RB0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom3:
+   [ Fr( ~aeadNB3 ) ] --> [ Random3( ~aeadNB3 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom2:
+   [ Fr( ~aeadNA2 ) ] --> [ Random2( ~aeadNA2 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom1:
+   [ Fr( ~RA1 ) ] --> [ Random1( ~RA1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom0:
+   [ Fr( ~RB0 ) ] --> [ Random0( ~RB0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenKeyMal:
+   [ In( key ) ] --> [ !Key( key ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenMSpace:
+   [ In( m ) ] --> [ !M( m ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction notsame2:
+  "∀ x y #i. (NotM2( x, y ) @ #i) ⇒ (¬(x = y))"
+  // safety formula
+
+rule (modulo E) nonce_reuse_2:
+   [ In( senc(k, m, n, ad) ), In( senc(k, m2, n, ad2) ), !M( m ), !M( m2 ) ]
+  --[ NotM2( m, m2 ) ]->
+   [ Out( <m, m2> ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) AttackerInitRoles:
+   [ ] --> [ Out( <$IdA, $IdB> ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) CreateAssociation:
+   [ In( <$IdA, $IdB> ), Fr( ~kAB ) ]
+  -->
+   [
+   !RoleA( $IdA, $IdB, ~kAB ), !RoleB( $IdA, $IdB, ~kAB ),
+   !Ltk( $IdA, ~kAB ), !Ltk( $IdB, ~kAB )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RevLtk:
+   [ !Ltk( A, k ) ] --[ RevLtk( A ) ]-> [ Out( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) CreateSession:
+   [ !RoleA( $IdA, $IdB, ~kAB ), !RoleB( $IdA, $IdB, ~kAB ) ]
+  -->
+   [ StartA( $IdA, $IdB, ~kAB ), StartB( $IdA, $IdB, ~kAB ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleB_1:
+   [ StartB( $IdA, $IdB, ~kAB ), Random0( ~RB ), Fr( ~Text1 ) ]
+  --[
+  BSendElt( $IdA, $IdB, ~kAB, ~Text1, ~RB ), BStarted( $IdA, $IdB, ~RB )
+  ]->
+   [ Out( <~RB, ~Text1> ), Step1B( $IdA, $IdB, ~kAB, ~RB ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleA_1:
+   [
+   StartA( $IdA, $IdB, ~kAB ), Random1( ~RA ), Random2( ~aeadNA ),
+   In( <RB, Text1> ), Fr( ~Text2 ), Fr( ~Text3 )
+   ]
+  --[
+  AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB,
+                                             <sid1_mut_cr, ~RA, RB, $IdB, ~Text2>, ~aeadNA, 'ad')
+  ),
+  ASendTokenAB( $IdA, $IdB, ~kAB, ~RA, RB, $IdB, ~Text2, ~Text3 ),
+  AStarted( $IdA, $IdB, ~RA, RB )
+  ]->
+   [
+   Out( <~Text3, ~aeadNA, 
+         senc(~kAB, <sid1_mut_cr, ~RA, RB, $IdB, ~Text2>, ~aeadNA, 'ad')>
+   ),
+   Step1A( $IdA, $IdB, ~kAB, ~RA, RB, ~Text2, ~Text3 ), !Key( ~kAB ),
+   !M( <sid1_mut_cr, ~RA, RB, $IdB, ~Text2> )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleB_2:
+   [
+   Step1B( $IdA, $IdB, ~kAB, ~RB ),
+   In( <Text3, aeadNA, 
+        senc(~kAB, <sid1_mut_cr, RA, ~RB, $IdB, Text2>, aeadNA, 'ad')>
+   ),
+   Fr( ~Text4 ), Random3( ~aeadNB ), Fr( ~Text5 )
+   ]
+  --[
+  AUTO_IN_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB,
+                                            <sid1_mut_cr, RA, ~RB, $IdB, Text2>, aeadNA, 'ad'),
+                                       RA
+  ),
+  BRecvTokenAB( $IdA, $IdB, ~kAB, RA, ~RB, $IdB, Text2, Text3 ),
+  BSendTokenBA( $IdA, $IdB, ~kAB, RA, $IdB, ~Text4, ~Text5 ),
+  BEnded( $IdA, $IdB, RA, ~RB )
+  ]->
+   [
+   Out( <~Text5, ~aeadNB, 
+         senc(~kAB, <sid2_mut_cr, RA, $IdB, ~Text4>, ~aeadNB, 'ad')>
+   ),
+   !Key( ~kAB ), !M( <sid2_mut_cr, RA, $IdB, ~Text4> )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleA_2:
+   [
+   Step1A( $IdA, $IdB, ~kAB, ~RA, RB, ~Text2, ~Text3 ),
+   In( <Text5, aeadNB, 
+        senc(~kAB, <sid2_mut_cr, ~RA, $IdB, Text4>, aeadNB, 'ad')>
+   )
+   ]
+  --[
+  ARecvTokenBA( $IdA, $IdB, ~kAB, ~RA, $IdB, Text4, Text5 ),
+  AEnded( $IdA, $IdB, ~RA, RB )
+  ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma mut_ts_functional:
+  exists-trace
+  "∃ ida1 idb1 kab1 ra1 text41 text51 ida2 idb2 kab2 ra2 text42 text52 #i
+     #j.
+    (((((BSendTokenBA( ida1, idb1, kab1, ra1, idb1, text41, text51 ) @ #i) ∧
+        (ARecvTokenBA( ida2, idb2, kab2, ra2, idb2, text42, text52 ) @ #j)) ∧
+       (¬(∃ #r. RevLtk( ida1 ) @ #r))) ∧
+      (¬(∃ #r. RevLtk( idb1 ) @ #r))) ∧
+     (¬(∃ #r. RevLtk( ida2 ) @ #r))) ∧
+    (¬(∃ #r. RevLtk( idb2 ) @ #r))"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ ida1 idb1 kab1 ra1 text41 text51 ida2 idb2 kab2 ra2 text42 text52 #i
+   #j.
+  (BSendTokenBA( ida1, idb1, kab1, ra1, idb1, text41, text51 ) @ #i) ∧
+  (ARecvTokenBA( ida2, idb2, kab2, ra2, idb2, text42, text52 ) @ #j)
+ ∧
+  (∀ #r. (RevLtk( ida1 ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb1 ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( ida2 ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb2 ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step1B( $IdA, $IdB, ~kAB, ~RB ) ▶₀ #i )
+  case RoleB_1_case_1
+  solve( Random3( ~aeadNB ) ▶₃ #i )
+    case GenRandom3
+    solve( Step1A( $IdA.1, $IdB.1, ~kAB.1, ~RA, RB.1, ~Text2.1, ~Text3.1
+           ) ▶₀ #j )
+      case RoleA_1
+      solve( !KU( senc(~kAB, <sid1_mut_cr, ra1, ~RB, $IdB, Text2>, aeadNA,
+                       'ad')
+             ) @ #vk.4 )
+        case RoleA_1
+        solve( !KU( senc(~kAB.1, <sid2_mut_cr, ~RA.1, $IdB.1, text42>, aeadNB.1,
+                         'ad')
+               ) @ #vk.9 )
+          case RoleB_2_case_1
+          solve( !KU( senc(~kAB.1, <sid1_mut_cr, ~RA.1, ~RB.2, $IdB.1, Text2.2>,
+                           aeadNA.2, 'ad')
+                 ) @ #vk.26 )
+            case RoleA_1
+            solve( !KU( ~RB ) @ #vk.21 )
+              case MisgenerateRandoms
+              solve( !KU( ~aeadNA ) @ #vk.10 )
+                case RoleA_1
+                solve( !KU( ~aeadNB.1 ) @ #vk.14 )
+                  case RoleB_2
+                  solve( !KU( ~RB.1 ) @ #vk.19 )
+                    case MisgenerateRandoms
+                    solve( !KU( ~aeadNA.1 ) @ #vk.26 )
+                      case RoleA_1
+                      SOLVED // trace found
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma agree_a:
+  all-traces
+  "∀ ida idb ra rb #i.
+    (AEnded( ida, idb, ra, rb ) @ #i) ⇒
+    (((∃ #j.
+        ((BEnded( ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∧
+        (¬(∃ ida2 idb2 #i2.
+            (AEnded( ida2, idb2, ra, rb ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+      (∃ #r. RevLtk( ida ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ida idb ra rb #i.
+  (AEnded( ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j.
+    (BEnded( ida, idb, ra, rb ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ida2 idb2 #i2. (AEnded( ida2, idb2, ra, rb ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step1A( $IdA, $IdB, ~kAB, ~RA, rb, ~Text2, ~Text3 ) ▶₀ #i )
+  case RoleA_1
+  solve( !KU( senc(~kAB, <sid2_mut_cr, ~RA, $IdB, Text4>, aeadNB, 'ad')
+         ) @ #vk.4 )
+    case RoleB_2_case_1
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ~RA, ~RB, $IdB, Text2.1>, aeadNA.1,
+                     'ad')
+           ) @ #vk.15 )
+      case RoleA_1
+      solve( (#i < #i2)  ∥ (#i2 < #i) )
+        case case_1
+        solve( Step1A( $IdA.1, $IdB.1, ~kAB.1, ~RA, ~RB, ~Text2.1, ~Text3.1
+               ) ▶₀ #i2 )
+          case RoleA_1
+          by contradiction /* cyclic */
+        qed
+      next
+        case case_2
+        solve( Step1A( $IdA.1, $IdB.1, ~kAB.1, ~RA, ~RB, ~Text2.1, ~Text3.1
+               ) ▶₀ #i2 )
+          case RoleA_1
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.17 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case RoleB_2_case_2
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ~RA, ~RB, $IdB, Text2.1>, aeadNA.1,
+                     'ad')
+           ) @ #vk.15 )
+      case RoleA_1
+      solve( (#i < #i2)  ∥ (#i2 < #i) )
+        case case_1
+        solve( Step1A( $IdA.1, $IdB.1, ~kAB.1, ~RA, ~RB, ~Text2.1, ~Text3.1
+               ) ▶₀ #i2 )
+          case RoleA_1
+          by contradiction /* cyclic */
+        qed
+      next
+        case case_2
+        solve( Step1A( $IdA.1, $IdB.1, ~kAB.1, ~RA, ~RB, ~Text2.1, ~Text3.1
+               ) ▶₀ #i2 )
+          case RoleA_1
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.17 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case c_senc
+    solve( !KU( ~kAB ) @ #vk.12 )
+      case RevLtk_case_1
+      by contradiction /* from formulas */
+    next
+      case RevLtk_case_2
+      by contradiction /* from formulas */
+    qed
+  qed
+qed
+
+lemma agree_b:
+  all-traces
+  "∀ ida idb ra rb #i.
+    (BEnded( ida, idb, ra, rb ) @ #i) ⇒
+    (((∃ #j.
+        ((AStarted( ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∧
+        (¬(∃ ida2 idb2 #i2.
+            (BEnded( ida2, idb2, ra, rb ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+      (∃ #r. RevLtk( ida ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ida idb ra rb #i.
+  (BEnded( ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j.
+    (AStarted( ida, idb, ra, rb ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ida2 idb2 #i2. (BEnded( ida2, idb2, ra, rb ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step1B( $IdA, $IdB, ~kAB, ~RB ) ▶₀ #i )
+  case RoleB_1_case_1
+  solve( Random3( ~aeadNB ) ▶₃ #i )
+    case GenRandom3
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ra, ~RB, $IdB, Text2>, aeadNA, 'ad')
+           ) @ #vk.4 )
+      case RoleA_1
+      solve( (#i < #i2)  ∥ (#i2 < #i) )
+        case case_1
+        solve( Step1B( $IdA.1, $IdB.1, ~kAB.1, ~RB ) ▶₀ #i2 )
+          case RoleB_1
+          by contradiction /* cyclic */
+        qed
+      next
+        case case_2
+        solve( Step1B( $IdA.1, $IdB.1, ~kAB.1, ~RB ) ▶₀ #i2 )
+          case RoleB_1
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+next
+  case RoleB_1_case_2
+  solve( Random3( ~aeadNB ) ▶₃ #i )
+    case GenRandom3
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ra, ~RB, $IdB, Text2>, aeadNA, 'ad')
+           ) @ #vk.4 )
+      case RoleA_1
+      solve( (#i < #i2)  ∥ (#i2 < #i) )
+        case case_1
+        solve( Step1B( $IdA.1, $IdB.1, ~kAB.1, ~RB ) ▶₀ #i2 )
+          case RoleB_1
+          by contradiction /* cyclic */
+        qed
+      next
+        case case_2
+        solve( Step1B( $IdA.1, $IdB.1, ~kAB.1, ~RB ) ▶₀ #i2 )
+          case RoleB_1
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_a:
+  all-traces
+  "∀ ida idb ra rb #i.
+    (AEnded( ida, idb, ra, rb ) @ #i) ⇒
+    (((∃ #j. (BEnded( ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∨
+      (∃ #r. RevLtk( ida ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ida idb ra rb #i.
+  (AEnded( ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j. (BEnded( ida, idb, ra, rb ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step1A( $IdA, $IdB, ~kAB, ~RA, rb, ~Text2, ~Text3 ) ▶₀ #i )
+  case RoleA_1
+  solve( !KU( senc(~kAB, <sid2_mut_cr, ~RA, $IdB, Text4>, aeadNB, 'ad')
+         ) @ #vk.4 )
+    case RoleB_2_case_1
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ~RA, ~RB, $IdB, Text2.1>, aeadNA.1,
+                     'ad')
+           ) @ #vk.15 )
+      case RoleA_1
+      by contradiction /* from formulas */
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.17 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case RoleB_2_case_2
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ~RA, ~RB, $IdB, Text2.1>, aeadNA.1,
+                     'ad')
+           ) @ #vk.15 )
+      case RoleA_1
+      by contradiction /* from formulas */
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.17 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case c_senc
+    solve( !KU( ~kAB ) @ #vk.12 )
+      case RevLtk_case_1
+      by contradiction /* from formulas */
+    next
+      case RevLtk_case_2
+      by contradiction /* from formulas */
+    qed
+  qed
+qed
+
+lemma noninj_agree_b:
+  all-traces
+  "∀ ida idb ra rb #i.
+    (BEnded( ida, idb, ra, rb ) @ #i) ⇒
+    (((∃ #j. (AStarted( ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∨
+      (∃ #r. RevLtk( ida ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ida idb ra rb #i.
+  (BEnded( ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j. (AStarted( ida, idb, ra, rb ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step1B( $IdA, $IdB, ~kAB, ~RB ) ▶₀ #i )
+  case RoleB_1_case_1
+  solve( Random3( ~aeadNB ) ▶₃ #i )
+    case GenRandom3
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ra, ~RB, $IdB, Text2>, aeadNA, 'ad')
+           ) @ #vk.4 )
+      case RoleA_1
+      by contradiction /* from formulas */
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+next
+  case RoleB_1_case_2
+  solve( Random3( ~aeadNB ) ▶₃ #i )
+    case GenRandom3
+    solve( !KU( senc(~kAB, <sid1_mut_cr, ra, ~RB, $IdB, Text2>, aeadNA, 'ad')
+           ) @ #vk.4 )
+      case RoleA_1
+      by contradiction /* from formulas */
+    next
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma AUTO_typing [sources]:
+  all-traces
+  "(⊤) ∧
+   (∀ x m #i.
+     (AUTO_IN_TERM_1_0_1_1_1_1_0__RoleB_2( m, x ) @ #i) ⇒
+     ((∃ #j. (!KU( x ) @ #j) ∧ (#j < #i)) ∨
+      (∃ #j. (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( m ) @ #j) ∧ (#j < #i))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x m #i.
+  (AUTO_IN_TERM_1_0_1_1_1_1_0__RoleB_2( m, x ) @ #i)
+ ∧
+  (∀ #j. (!KU( x ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #j. (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( m ) @ #j) ⇒ ¬(#j < #i))"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  simplify
+  solve( (last(#i))  ∥
+         (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+         (∃ #j.
+           (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB,
+                                                       <sid1_mut_cr, x, ~RB, $IdB, Text2>, aeadNA, 'ad')
+            ) @ #j)
+          ∧
+           (¬(last(#j))) ∧ (#j < #i)) )
+    case case_1
+    solve( Step1B( $IdA, $IdB, ~kAB, ~RB ) ▶₀ #i )
+      case RoleB_1_case_1
+      solve( Random3( ~aeadNB ) ▶₃ #i )
+        case GenRandom3
+        solve( !KU( senc(~kAB, <sid1_mut_cr, x, ~RB, $IdB, Text2>, aeadNA, 'ad')
+               ) @ #vk.4 )
+          case RoleA_1
+          by contradiction /* from formulas */
+        next
+          case RoleB_2_case_1
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.5))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.5)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.5))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.5)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case c_senc
+          by contradiction /* from formulas */
+        next
+          case nonce_reuse_2_case_01
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_02
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_03
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.2, $IdB.1, Text2.2>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_04
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.2, $IdB.1, Text2.2>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_05
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_06
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_07
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_08
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_09
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_10
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_11
+          solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                               <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                               aeadNA.2, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_12
+          solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                               <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                               aeadNA.2, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_13
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        next
+          case nonce_reuse_2_case_14
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        next
+          case nonce_reuse_2_case_15
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        next
+          case nonce_reuse_2_case_16
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        qed
+      qed
+    next
+      case RoleB_1_case_2
+      solve( Random3( ~aeadNB ) ▶₃ #i )
+        case GenRandom3
+        solve( !KU( senc(~kAB, <sid1_mut_cr, x, ~RB, $IdB, Text2>, aeadNA, 'ad')
+               ) @ #vk.4 )
+          case RoleA_1
+          by contradiction /* from formulas */
+        next
+          case RoleB_2_case_1
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.5))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.5)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.5))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.5)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case c_senc
+          by contradiction /* from formulas */
+        next
+          case nonce_reuse_2_case_01
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_02
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_03
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.2, $IdB.1, Text2.2>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_04
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.2, $IdB.1, Text2.2>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_05
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_06
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_07
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_08
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_09
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_10
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_11
+          solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                               <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                               aeadNA.2, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_12
+          solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                               <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                               aeadNA.2, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.8)) )
+            case case_1
+            by contradiction /* cyclic */
+          next
+            case case_2
+            by contradiction /* impossible chain */
+          qed
+        next
+          case nonce_reuse_2_case_13
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        next
+          case nonce_reuse_2_case_14
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        next
+          case nonce_reuse_2_case_15
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        next
+          case nonce_reuse_2_case_16
+          solve( (∃ #j. (!KU( RA ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.7))  ∥
+                 (∃ #j.
+                   (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.1,
+                                                               <sid1_mut_cr, RA, ~RB.1, $IdB.1, Text2.1>,
+                                                               aeadNA.1, 'ad')
+                    ) @ #j)
+                  ∧
+                   (¬(last(#j))) ∧ (#j < #vr.7)) )
+            case case_1
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          next
+            case case_2
+            solve( (∃ #j. (!KU( RA.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.8))  ∥
+                   (∃ #j.
+                     (AUTO_OUT_TERM_1_0_1_1_1_1_0__RoleB_2( senc(~kAB.2,
+                                                                 <sid1_mut_cr, RA.1, ~RB.2, $IdB.2, Text2.2>,
+                                                                 aeadNA.2, 'ad')
+                      ) @ #j)
+                    ∧
+                     (¬(last(#j))) ∧ (#j < #vr.8)) )
+              case case_1
+              by contradiction /* cyclic */
+            next
+              case case_2
+              by contradiction /* impossible chain */
+            qed
+          qed
+        qed
+      qed
+    qed
+  next
+    case case_2
+    by contradiction /* from formulas */
+  next
+    case case_3
+    by contradiction /* from formulas */
+  qed
+qed
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Message Derivation Checks
+=========================
+
+  The variables of the following rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule nonce_reuse_2: 
+Failed to derive Variable(s): ad, ad2, k, n
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-01-20 17:15:39.562956625 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: 979824_leak_once_0.spthy
+
+  processing time: 33.22s
+  
+  WARNING: 1 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  mut_ts_functional (exists-trace): verified (13 steps)
+  agree_a (all-traces): verified (24 steps)
+  agree_b (all-traces): verified (22 steps)
+  noninj_agree_a (all-traces): verified (16 steps)
+  noninj_agree_b (all-traces): verified (14 steps)
+  AUTO_typing (all-traces): verified (155 steps)
+
+==============================================================================

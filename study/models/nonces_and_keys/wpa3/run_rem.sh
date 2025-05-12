@@ -1,0 +1,23 @@
+set -x
+tamarin-prover wpa3_basic.spthy --prove 2>/dev/null > wpa3_basic_results.spthy
+tamarin-prover wpa3_leak_always_4.spthy --prove 2>/dev/null > wpa3_leak_always_4_results.spthy
+tamarin-prover wpa3_leak_always_5.spthy --prove 2>/dev/null > wpa3_leak_always_5_results.spthy
+tamarin-prover wpa3_reuse_always_0.spthy --prove 2>/dev/null > wpa3_reuse_always_0_results.spthy
+tamarin-prover wpa3_reuse_always_1.spthy --prove 2>/dev/null > wpa3_reuse_always_1_results.spthy
+tamarin-prover wpa3_reuse_always_2.spthy --prove 2>/dev/null > wpa3_reuse_always_2_results.spthy
+tamarin-prover wpa3_reuse_always_3.spthy --prove 2>/dev/null > wpa3_reuse_always_3_results.spthy
+tamarin-prover wpa3_reuse_always_4.spthy --prove 2>/dev/null > wpa3_reuse_always_4_results.spthy
+tamarin-prover wpa3_reuse_always_5.spthy --prove 2>/dev/null > wpa3_reuse_always_5_results.spthy
+tamarin-prover wpa3_reuse_once_0_0.spthy --prove 2>/dev/null > wpa3_reuse_once_0_0_results.spthy
+#tamarin-prover wpa3_reuse_once_0_1.spthy --prove 2>/dev/null > wpa3_reuse_once_0_1_results.spthy
+#tamarin-prover wpa3_reuse_once_0_2.spthy --prove 2>/dev/null > wpa3_reuse_once_0_2_results.spthy
+#tamarin-prover wpa3_reuse_once_0_3.spthy --prove 2>/dev/null > wpa3_reuse_once_0_3_results.spthy
+tamarin-prover wpa3_reuse_once_1_1.spthy --prove 2>/dev/null > wpa3_reuse_once_1_1_results.spthy
+#tamarin-prover wpa3_reuse_once_1_2.spthy --prove 2>/dev/null > wpa3_reuse_once_1_2_results.spthy
+tamarin-prover wpa3_reuse_once_1_3.spthy --prove 2>/dev/null > wpa3_reuse_once_1_3_results.spthy
+tamarin-prover wpa3_reuse_once_2_2.spthy --prove 2>/dev/null > wpa3_reuse_once_2_2_results.spthy
+#tamarin-prover wpa3_reuse_once_2_3.spthy --prove 2>/dev/null > wpa3_reuse_once_2_3_results.spthy
+tamarin-prover wpa3_reuse_once_3_3.spthy --prove 2>/dev/null > wpa3_reuse_once_3_3_results.spthy
+tamarin-prover wpa3_reuse_once_4_4.spthy --prove 2>/dev/null > wpa3_reuse_once_4_4_results.spthy
+tamarin-prover wpa3_reuse_once_4_5.spthy --prove 2>/dev/null > wpa3_reuse_once_4_5_results.spthy
+tamarin-prover wpa3_reuse_once_5_5.spthy --prove 2>/dev/null > wpa3_reuse_once_5_5_results.spthy

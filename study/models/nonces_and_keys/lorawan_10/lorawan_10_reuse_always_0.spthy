@@ -1,0 +1,227 @@
+theory LoRaWAN10_lorawan_10_reuse_always_0
+begin
+
+builtins: symmetric-encryption
+
+functions: mac/2,
+		verif_mac/3,
+		true/0,
+		cst1/0,
+		cst2/0
+
+equations: verif_mac(k, m, mac(k, m)) = true
+
+rule MisgenerateRandoms:
+	[
+		Fr(~devnonce0)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		!Random0(~devnonce0)
+	]
+
+rule GenRandom1:
+	[
+		Fr(~joinnonce1)
+	]
+	-->
+	[
+		Random1(~joinnonce1)
+	]
+
+rule Provision:
+	[
+		Fr(~deveui),
+		Fr(~joineui),
+		Fr(~appkey),
+		Fr(~devaddr)
+	]
+	--[
+		CreateAssociation(~deveui, ~joineui, ~appkey)
+	]->
+	[
+		!DeviceReady(~deveui, ~joineui, ~appkey),
+		!NetworkReady(~deveui, ~joineui, ~devaddr, ~appkey),
+		!Ltk(~deveui, ~appkey),
+		!Ltk(~joineui, ~appkey)
+	]
+
+rule RevLtk:
+	[
+		!Ltk(A, k)
+	]
+	--[
+		RevLtk(A)
+	]->
+	[
+		Out(k)
+	]
+
+rule DeviceSendJoinRequest:
+	let
+		m = mac(~appkey, < 'JoinRequest', ~deveui, ~joineui, ~devnonce >)
+	in
+	[
+		!DeviceReady(~deveui, ~joineui, ~appkey),
+		!Random0(~devnonce)
+	]
+	--[
+		SendJoinRequest(~deveui, ~joineui, ~appkey, ~devnonce),
+		DevStarted(~deveui, ~joineui, ~appkey, ~devnonce)
+	]->
+	[
+		Out(< 'JoinRequest', ~deveui, ~joineui, ~devnonce, m >),
+		DeviceSendJoinRequest(~deveui, ~joineui, ~devnonce, ~appkey)
+	]
+
+rule NetworkRecvJoinRequest:
+	let
+		appskey = senc(< cst1, devnonce, ~joinnonce >, ~appkey)
+		nwkskey = senc(< cst2, devnonce, ~joinnonce >, ~appkey)
+	in
+	[
+		!NetworkReady(~deveui, ~joineui, ~devaddr, ~appkey),
+		In(< 'JoinRequest', ~deveui, ~joineui, devnonce, m >),
+		Random1(~joinnonce)
+	]
+	--[
+		Eq(verif_mac(~appkey, < 'JoinRequest', ~deveui, ~joineui, devnonce >, m), true),
+		RecvJoinRequest(~deveui, ~joineui, devnonce),
+		SendJoinAccept(~deveui, ~joineui, ~appkey, devnonce, ~joinnonce, ~devaddr),
+		NetStarted(~deveui, ~joineui, ~appkey, devnonce, ~joinnonce),
+		NetEnded(~deveui, ~joineui, ~appkey, devnonce, ~joinnonce),
+		NetEndedKeys(~deveui, ~joineui, appskey, nwkskey),
+		NetworkDeriveKeys(~deveui, ~joineui, ~devaddr, devnonce, ~joinnonce, ~appkey, appskey, nwkskey)
+	]->
+	[
+		Out(senc(< 'JoinAccept', ~joinnonce, ~devaddr, mac(~appkey, < 'JoinAccept', ~joinnonce, ~devaddr >) >, ~appkey))
+	]
+
+rule DeviceRecvJoinAccept:
+	[
+		DeviceSendJoinRequest(~deveui, ~joineui, ~devnonce, ~appkey),
+		In(senc(< 'JoinAccept', joinnonce, devaddr, mm >, ~appkey))
+	]
+	--[
+		Eq(verif_mac(~appkey, < 'JoinAccept', joinnonce, devaddr >, mm), true),
+		RecvJoinAccept(~deveui, ~joineui, ~appkey, ~devnonce, joinnonce, devaddr)
+	]->
+	[
+		DeviceRecvJoinAccept(~deveui, ~joineui, ~appkey, ~devnonce, joinnonce, devaddr)
+	]
+
+rule DeviceDeriveKeys:
+	let
+		appskey = senc(< cst1, ~devnonce, joinnonce >, ~appkey)
+		nwkskey = senc(< cst2, ~devnonce, joinnonce >, ~appkey)
+	in
+	[
+		DeviceRecvJoinAccept(~deveui, ~joineui, ~appkey, ~devnonce, joinnonce, devaddr)
+	]
+	--[
+		DeviceDeriveKeys(~deveui, ~joineui, ~devnonce, joinnonce, devaddr, ~appkey, appskey, nwkskey),
+		DevEnded(~deveui, ~joineui, ~appkey, ~devnonce, joinnonce),
+		DevEndedKeys(~deveui, ~joineui, appskey, nwkskey)
+	]->
+	[
+		
+	]
+
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+restriction Eq:
+	"All a b #i . 
+	Eq(a, b) @ i ==> a = b"
+
+lemma step1: exists-trace
+" Ex deveui joineui appkey devnonce #i #j . 
+	SendJoinRequest(deveui, joineui, appkey, devnonce) @ i & RecvJoinRequest(deveui, joineui, devnonce) @ j "
+
+lemma step2: exists-trace
+" Ex deveui joineui devnonce joinnonce appkey devaddr #i #j . 
+	SendJoinAccept(deveui, joineui, appkey, devnonce, joinnonce, devaddr) @ i & RecvJoinAccept(deveui, joineui, appkey, devnonce, joinnonce, devaddr) @ j "
+
+lemma protocol_completion: exists-trace
+" Ex deveui joineui devaddr devnonce joinnonce appkey appskey nwkskey #i #j . 
+	NetworkDeriveKeys(deveui, joineui, devaddr, devnonce, joinnonce, appkey, appskey, nwkskey) @ i & DeviceDeriveKeys(deveui, joineui, devnonce, joinnonce, devaddr, appkey, appskey, nwkskey) @ j "
+
+lemma s_inj_agree_simple_device:
+" All deveui joineui appkey devnonce joinnonce #i . 
+	DevEnded(deveui, joineui, appkey, devnonce, joinnonce) @ i ==> (Ex #j . 
+	NetEnded(deveui, joineui, appkey, devnonce, joinnonce) @ j & #j < #i & not (Ex deveui2 joineui2 #i2 . 
+	DevEnded(joineui2, deveui2, appkey, devnonce, joinnonce) @ i2 & not (#i2 = #i))) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma s_inj_agree_simple_network:
+" All deveui joineui appkey devnonce joinnonce #i . 
+	NetEnded(deveui, joineui, appkey, devnonce, joinnonce) @ i ==> (Ex #j . 
+	DevStarted(deveui, joineui, appkey, devnonce) @ j & #j < #i & not (Ex joineui2 deveui2 joinnonce2 #i2 . 
+	NetEnded(joineui2, deveui2, appkey, devnonce, joinnonce2) @ i2 & not (#i2 = #i))) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma s_noninj_agree_simple_device:
+" All deveui joineui appkey devnonce joinnonce #i . 
+	DevEnded(deveui, joineui, appkey, devnonce, joinnonce) @ i ==> (Ex #j . 
+	NetEnded(deveui, joineui, appkey, devnonce, joinnonce) @ j & j < i) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma s_noninj_agree_simple_network:
+" All deveui joineui appkey devnonce joinnonce #i . 
+	NetEnded(deveui, joineui, appkey, devnonce, joinnonce) @ i ==> (Ex #j . 
+	DevStarted(deveui, joineui, appkey, devnonce) @ j & j < i) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma s_inj_agree_keys:
+" All deveui joineui appskey nwkskey #i . 
+	DevEndedKeys(deveui, joineui, appskey, nwkskey) @ i ==> (Ex #j . 
+	NetEndedKeys(deveui, joineui, appskey, nwkskey) @ j & #j < #i & not (Ex #i2 . 
+	DevEndedKeys(deveui, joineui, appskey, nwkskey) @ i2 & not (#i2 = #i))) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma s_noninj_agree_keys:
+" All deveui joineui appskey nwkskey #i . 
+	DevEndedKeys(deveui, joineui, appskey, nwkskey) @ i ==> (Ex #j . 
+	NetEndedKeys(deveui, joineui, appskey, nwkskey) @ j & j < i) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma keys_freshness_network:
+" All deveui joineui appskey nwkskey #i . 
+	NetEndedKeys(deveui, joineui, appskey, nwkskey) @ i ==> not (Ex deveui2 joineui2 #j . 
+	NetEndedKeys(deveui2, joineui2, appskey, nwkskey) @ j & not (#i = #j)) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma keys_freshness_device:
+" All deveui joineui appskey nwkskey #i . 
+	DevEndedKeys(deveui, joineui, appskey, nwkskey) @ i ==> not (Ex deveui2 joineui2 #j . 
+	DevEndedKeys(deveui2, joineui2, appskey, nwkskey) @ j & not (#i = #j)) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma weaksecret_device:
+" All deveui joineui appskey nwkskey #i . 
+	DevEndedKeys(deveui, joineui, appskey, nwkskey) @ i ==> not ((Ex #j . 
+	K(appskey) @ j) | (Ex #k . 
+	K(nwkskey) @ k)) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+lemma weaksecret_network:
+" All deveui joineui appskey nwkskey #i . 
+	NetEndedKeys(deveui, joineui, appskey, nwkskey) @ i ==> not ((Ex #j . 
+	K(appskey) @ j) | (Ex #k . 
+	K(nwkskey) @ k)) | (Ex #r . 
+	RevLtk(deveui) @ r) | (Ex #r . 
+	RevLtk(joineui) @ r) "
+
+
+end

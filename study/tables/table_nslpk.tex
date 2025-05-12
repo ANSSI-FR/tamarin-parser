@@ -1,0 +1,24 @@
+\documentclass[crop]{standalone}
+\usepackage{utfsym}
+\usepackage{caption}
+
+\definecolor{ForestGreen}{RGB}{34,139,34}
+\newcommand{\noattack}{\color{ForestGreen}\usym{2713}\color{black}}
+\newcommand{\attack}{\color{red}\usym{2717}\color{black}}
+
+\begin{document}
+\parbox{15cm}{
+\captionof{table}{ Detailed results for NSLPK3 - Nonces }
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+Case & Nonce & IA\_A & IA\_B & NIA\_A & NIA\_B \\ \hline
+No misgeneration & N/A & \noattack & \noattack & \noattack & \noattack\\ \hline
+Leak Always & $N_A$ & \attack & \noattack & \attack & \noattack\\ \hline
+Leak Always & $N_B$ & \noattack & \attack & \noattack & \attack\\ \hline
+Reuse Always & $N_A$ & \attack & \noattack & \attack & \noattack\\ \hline
+Reuse Always & $N_B$ & \noattack & \attack & \noattack & \attack\\ \hline
+Reuse Once & $N_A$ = $N_A$ & \attack & \noattack & \attack & \noattack\\ \hline
+Reuse Once & $N_A$ = $N_B$ & \attack & \attack & \attack & \attack\\ \hline
+Reuse Once & $N_B$ = $N_B$ & \noattack & \attack & \noattack & \attack\\ \hline
+\end{tabular}}
+\end{document}

@@ -1,0 +1,1994 @@
+theory Dragonfly_dragonfly_leak_always_0 begin
+
+// Function signature and definition of the equational theory E
+
+builtins: diffie-hellman
+functions: add/2, fst/1, get_elt1/2[destructor], get_elt2/2[destructor],
+           h/1, pair/2, snd/1, staticpsk/0[private,destructor]
+equations:
+    fst(<x.1, x.2>) = x.1,
+    get_elt1(add(a, b), b) = a,
+    get_elt2(add(a, b), a) = b,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+rule (modulo E) GenRandom3:
+   [ Fr( ~ma3 ) ] --> [ Random3( ~ma3 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom2:
+   [ Fr( ~ska2 ) ] --> [ Random2( ~ska2 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom1:
+   [ Fr( ~mc1 ) ] --> [ Random1( ~mc1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom0:
+   [ Fr( ~skc0 ) ] --> [ Out( ~skc0 ), Random0( ~skc0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) CreateSession:
+   [ ]
+  -->
+   [
+   APReady( $AP, $Client, staticpsk, h(<$AP, $Client, staticpsk>) ),
+   ClientReady( $AP, $Client, staticpsk, h(<$AP, $Client, staticpsk>) ),
+   !PskUsed( staticpsk ), !Ltk( $AP, staticpsk ), !Ltk( $Client, staticpsk )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RevLtk:
+   [ !Ltk( A, k ) ] --[ RevLtk( ) ]-> [ Out( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) ClientCreateSession:
+   [ ClientReady( $AP, $Client, psk, pe ), Random0( ~skc ), Random1( ~mc ) ]
+  --[
+  ClientStarted1( $AP, $Client, psk, pe, ~skc, inv(pe^~mc), add(~mc, ~skc)
+  )
+  ]->
+   [
+   Out( <inv(pe^~mc), add(~mc, ~skc)> ),
+   ClientStep1( $AP, $Client, psk, pe, ~skc, inv(pe^~mc), add(~mc, ~skc) )
+   ]
+
+  /*
+  rule (modulo AC) ClientCreateSession:
+     [ ClientReady( $AP, $Client, psk, pe ), Random0( ~skc ), Random1( ~mc ) ]
+    --[ ClientStarted1( $AP, $Client, psk, pe, ~skc, z, add(~mc, ~skc) ) ]->
+     [
+     Out( <z, add(~mc, ~skc)> ),
+     ClientStep1( $AP, $Client, psk, pe, ~skc, z, add(~mc, ~skc) )
+     ]
+    variants (modulo AC)
+     1. ~mc   = ~mc.8
+        pe    = pe.8
+        z     = inv(pe.8^~mc.8)
+    
+     2. ~mc   = ~x.8
+        pe    = x.10^inv(~x.8)
+        z     = inv(x.10)
+    
+     3. ~mc   = ~x.8
+        pe    = x.10^inv((~x.8*x.11))
+        z     = inv(x.10^inv(x.11))
+    
+     4. ~mc   = ~x.8
+        pe    = x.10^(x.11*inv(~x.8))
+        z     = inv(x.10^x.11)
+    
+     5. ~mc   = ~x.8
+        pe    = x.10^(x.11*inv((~x.8*x.12)))
+        z     = inv(x.10^(x.11*inv(x.12)))
+    
+     6. ~mc   = ~x.8
+        pe    = inv(x.10)^inv(~x.8)
+        z     = x.10
+    
+     7. ~mc   = ~x.8
+        pe    = one^inv(~x.8)
+        z     = one
+    
+     8. ~mc   = ~x.8
+        pe    = (x.10*inv(x.11))^inv(~x.8)
+        z     = (x.11*inv(x.10))
+    
+     9. ~mc   = ~mc.10
+        pe    = x.8^x.9
+        z     = inv(x.8^(x.9*~mc.10))
+    
+    10. pe    = DH_neutral
+        z     = inv(DH_neutral)
+  */
+
+rule (modulo E) APCreateSession:
+   [
+   APReady( $AP, $Client, psk, pe ), Random2( ~ska ), Random3( ~ma ),
+   In( <eltc, scalarc> )
+   ]
+  --[
+  LblAPStarted( $AP, $Client, psk, pe, ~ska, inv(pe^~ma), eltc,
+                add(~ma, ~ska), scalarc
+  ),
+  APStarted( $AP, $Client, inv(pe^~ma), eltc, add(~ma, ~ska), scalarc )
+  ]->
+   [
+   Out( <inv(pe^~ma), add(~ma, ~ska)> ),
+   APStep1( $AP, $Client, psk, pe, ~ska, inv(pe^~ma), eltc, add(~ma, ~ska),
+            scalarc
+   ),
+   APProduceKey( $AP, $Client, psk, pe, ~ska, eltc, scalarc )
+   ]
+
+  /*
+  rule (modulo AC) APCreateSession:
+     [
+     APReady( $AP, $Client, psk, pe ), Random2( ~ska ), Random3( ~ma ),
+     In( <eltc, scalarc> )
+     ]
+    --[
+    LblAPStarted( $AP, $Client, psk, pe, ~ska, z, eltc, add(~ma, ~ska),
+                  scalarc
+    ),
+    APStarted( $AP, $Client, z, eltc, add(~ma, ~ska), scalarc )
+    ]->
+     [
+     Out( <z, add(~ma, ~ska)> ),
+     APStep1( $AP, $Client, psk, pe, ~ska, z, eltc, add(~ma, ~ska), scalarc ),
+     APProduceKey( $AP, $Client, psk, pe, ~ska, eltc, scalarc )
+     ]
+    variants (modulo AC)
+     1. ~ma   = ~ma.10
+        pe    = pe.10
+        z     = inv(pe.10^~ma.10)
+    
+     2. ~ma   = ~x.10
+        pe    = x.13^inv(~x.10)
+        z     = inv(x.13)
+    
+     3. ~ma   = ~x.10
+        pe    = x.13^inv((~x.10*x.14))
+        z     = inv(x.13^inv(x.14))
+    
+     4. ~ma   = ~x.10
+        pe    = x.13^(x.14*inv(~x.10))
+        z     = inv(x.13^x.14)
+    
+     5. ~ma   = ~x.10
+        pe    = x.13^(x.14*inv((~x.10*x.15)))
+        z     = inv(x.13^(x.14*inv(x.15)))
+    
+     6. ~ma   = ~x.10
+        pe    = inv(x.13)^inv(~x.10)
+        z     = x.13
+    
+     7. ~ma   = ~x.10
+        pe    = one^inv(~x.10)
+        z     = one
+    
+     8. ~ma   = ~x.10
+        pe    = (x.13*inv(x.14))^inv(~x.10)
+        z     = (x.14*inv(x.13))
+    
+     9. ~ma   = ~ma.12
+        pe    = x.10^x.11
+        z     = inv(x.10^(x.11*~ma.12))
+    
+    10. pe    = DH_neutral
+        z     = inv(DH_neutral)
+  */
+
+rule (modulo E) ClientRecvPkey:
+   [
+   ClientStep1( $AP, $Client, psk, pe, ~skc, eltc, scalarc ),
+   In( <elta, scalara> )
+   ]
+  --[ ClientStarted( $AP, $Client, elta, eltc, scalara, scalarc ) ]->
+   [
+   ClientProduceKey( $AP, $Client, psk, pe, ~skc, elta, scalara ),
+   ClientReadyCommit( $AP, $Client, psk, pe, ~skc, elta, eltc, scalara,
+                      scalarc
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) AttDerivePubKey:
+   [
+   !PskUsed( psk ), In( h(<$AP, $Client, psk>) ),
+   In( inv(h(<$AP, $Client, psk>)^~m) ), In( add(~m, ~s) )
+   ]
+  -->
+   [ Out( h(<$AP, $Client, psk>)^~s ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) APDeriveSS:
+   [
+   APProduceKey( $AP, $Client, psk, pe, ~ska, inv(pe^~mc), add(~mc, ~skc) )
+   ]
+  -->
+   [ APGetKey( $AP, $Client, psk, ~ska, pe^~skc^~ska ) ]
+
+  /*
+  rule (modulo AC) APDeriveSS:
+     [ APProduceKey( $AP, $Client, psk, pe, ~ska, z, add(~mc, ~skc) ) ]
+    -->
+     [ APGetKey( $AP, $Client, psk, ~ska, z.1 ) ]
+    variants (modulo AC)
+     1. ~mc   = ~mc.10
+        ~ska  = ~ska.10
+        ~skc  = ~skc.10
+        pe    = pe.10
+        z     = inv(pe.10^~mc.10)
+        z.1   = pe.10^(~ska.10*~skc.10)
+    
+     2. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.11
+        pe    = one^inv(~x.10)
+        z     = one
+        z.1   = one^~skc.11
+    
+     3. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11))
+        z     = inv(x.12^inv(~x.11))
+        z.1   = x.12
+    
+     4. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11*x.13))
+        z     = inv(x.12^inv((~x.11*x.13)))
+        z.1   = x.12^inv(x.13)
+    
+     5. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11)))
+        z     = inv(x.12^(x.13*inv(~x.11)))
+        z.1   = x.12^x.13
+    
+     6. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11*x.14)))
+        z     = inv(x.12^(x.13*inv((~x.11*x.14))))
+        z.1   = x.12^(x.13*inv(x.14))
+    
+     7. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.13
+        pe    = x.12^inv(~x.10)
+        z     = inv(x.12)
+        z.1   = x.12^~skc.13
+    
+     8. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.13
+        pe    = inv(x.12)^inv(~x.10)
+        z     = x.12
+        z.1   = inv(x.12)^~skc.13
+    
+     9. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^inv((~x.10*x.13))
+        z     = inv(x.12^inv(x.13))
+        z.1   = x.12^(~skc.14*inv(x.13))
+    
+    10. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^(x.13*inv(~x.10))
+        z     = inv(x.12^x.13)
+        z.1   = x.12^(x.13*~skc.14)
+    
+    11. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = (x.12*inv(x.13))^inv(~x.10)
+        z     = (x.13*inv(x.12))
+        z.1   = (x.12*inv(x.13))^~skc.14
+    
+    12. ~mc   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.15
+        pe    = x.12^(x.13*inv((~x.10*x.14)))
+        z     = inv(x.12^(x.13*inv(x.14)))
+        z.1   = x.12^(x.13*~skc.15*inv(x.14))
+    
+    13. ~mc   = ~x.10
+        ~ska  = ~ska.11
+        ~skc  = ~x.10
+        pe    = one^inv(~x.10)
+        z     = one
+        z.1   = one^~ska.11
+    
+    14. ~mc   = ~x.10
+        ~ska  = ~ska.11
+        ~skc  = ~skc.11
+        pe    = one^inv(~x.10)
+        z     = one
+        z.1   = one^(~ska.11*~skc.11*inv(~x.10))
+    
+    15. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^inv((~x.10*~x.11))
+        z     = inv(x.12^inv(~x.11))
+        z.1   = x.12
+    
+    16. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^inv((~x.10*~x.11*x.13))
+        z     = inv(x.12^inv((~x.11*x.13)))
+        z.1   = x.12^inv(x.13)
+    
+    17. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv((~x.10*~x.11)))
+        z     = inv(x.12^(x.13*inv(~x.11)))
+        z.1   = x.12^x.13
+    
+    18. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv((~x.10*~x.11*x.14)))
+        z     = inv(x.12^(x.13*inv((~x.11*x.14))))
+        z.1   = x.12^(x.13*inv(x.14))
+    
+    19. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.11*~x.12))
+        z     = inv(x.13^inv((~x.11*~x.12)))
+        z.1   = x.13^inv(~x.10)
+    
+    20. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.11*~x.12*x.14))
+        z     = inv(x.13^inv((~x.11*~x.12*x.14)))
+        z.1   = x.13^inv((~x.10*x.14))
+    
+    21. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.11*~x.12)))
+        z     = inv(x.13^(x.14*inv((~x.11*~x.12))))
+        z.1   = x.13^(x.14*inv(~x.10))
+    
+    22. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.11*~x.12*x.15)))
+        z     = inv(x.13^(x.14*inv((~x.11*~x.12*x.15))))
+        z.1   = x.13^(x.14*inv((~x.10*x.15)))
+    
+    23. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.14
+        pe    = x.13^inv((~x.10*~x.11))
+        z     = inv(x.13^inv(~x.11))
+        z.1   = x.13^(~skc.14*inv(~x.10))
+    
+    24. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.15
+        pe    = x.13^inv((~x.10*~x.11*x.14))
+        z     = inv(x.13^inv((~x.11*x.14)))
+        z.1   = x.13^(~skc.15*inv((~x.10*x.14)))
+    
+    25. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.15
+        pe    = x.13^(x.14*inv((~x.10*~x.11)))
+        z     = inv(x.13^(x.14*inv(~x.11)))
+        z.1   = x.13^(x.14*~skc.15*inv(~x.10))
+    
+    26. ~mc   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.16
+        pe    = x.13^(x.14*inv((~x.10*~x.11*x.15)))
+        z     = inv(x.13^(x.14*inv((~x.11*x.15))))
+        z.1   = x.13^(x.14*~skc.16*inv((~x.10*x.15)))
+    
+    27. ~mc   = ~x.10
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = x.12^inv(~x.10)
+        z     = inv(x.12)
+        z.1   = x.12^~ska.13
+    
+    28. ~mc   = ~x.10
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = inv(x.12)^inv(~x.10)
+        z     = x.12
+        z.1   = inv(x.12)^~ska.13
+    
+    29. ~mc   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = x.12^inv((~x.10*x.13))
+        z     = inv(x.12^inv(x.13))
+        z.1   = x.12^(~ska.14*inv(x.13))
+    
+    30. ~mc   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv(~x.10))
+        z     = inv(x.12^x.13)
+        z.1   = x.12^(x.13*~ska.14)
+    
+    31. ~mc   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = (x.12*inv(x.13))^inv(~x.10)
+        z     = (x.13*inv(x.12))
+        z.1   = (x.12*inv(x.13))^~ska.14
+    
+    32. ~mc   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.12))
+        z     = inv(x.13^inv(~x.12))
+        z.1   = x.13^(~ska.14*inv(~x.10))
+    
+    33. ~mc   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~skc.14
+        pe    = x.13^inv(~x.10)
+        z     = inv(x.13)
+        z.1   = x.13^(~ska.14*~skc.14*inv(~x.10))
+    
+    34. ~mc   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~skc.14
+        pe    = inv(x.13)^inv(~x.10)
+        z     = x.13
+        z.1   = inv(x.13)^(~ska.14*~skc.14*inv(~x.10))
+    
+    35. ~mc   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv((~x.10*x.14)))
+        z     = inv(x.12^(x.13*inv(x.14)))
+        z.1   = x.12^(x.13*~ska.15*inv(x.14))
+    
+    36. ~mc   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.12*x.14))
+        z     = inv(x.13^inv((~x.12*x.14)))
+        z.1   = x.13^(~ska.15*inv((~x.10*x.14)))
+    
+    37. ~mc   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.12)))
+        z     = inv(x.13^(x.14*inv(~x.12)))
+        z.1   = x.13^(x.14*~ska.15*inv(~x.10))
+    
+    38. ~mc   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~skc.15
+        pe    = x.13^inv((~x.10*x.14))
+        z     = inv(x.13^inv(x.14))
+        z.1   = x.13^(~ska.15*~skc.15*inv((~x.10*x.14)))
+    
+    39. ~mc   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~skc.15
+        pe    = x.13^(x.14*inv(~x.10))
+        z     = inv(x.13^x.14)
+        z.1   = x.13^(x.14*~ska.15*~skc.15*inv(~x.10))
+    
+    40. ~mc   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~skc.15
+        pe    = (x.13*inv(x.14))^inv(~x.10)
+        z     = (x.14*inv(x.13))
+        z.1   = (x.13*inv(x.14))^(~ska.15*~skc.15*inv(~x.10))
+    
+    41. ~mc   = ~x.10
+        ~ska  = ~ska.16
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.12*x.15)))
+        z     = inv(x.13^(x.14*inv((~x.12*x.15))))
+        z.1   = x.13^(x.14*~ska.16*inv((~x.10*x.15)))
+    
+    42. ~mc   = ~x.10
+        ~ska  = ~ska.16
+        ~skc  = ~skc.16
+        pe    = x.13^(x.14*inv((~x.10*x.15)))
+        z     = inv(x.13^(x.14*inv(x.15)))
+        z.1   = x.13^(x.14*~ska.16*~skc.16*inv((~x.10*x.15)))
+    
+    43. ~mc   = ~mc.12
+        ~ska  = ~ska.12
+        ~skc  = ~x.10
+        pe    = x.11^inv(~x.10)
+        z     = inv(x.11^(~mc.12*inv(~x.10)))
+        z.1   = x.11^~ska.12
+    
+    44. ~mc   = ~mc.12
+        ~ska  = ~ska.12
+        ~skc  = ~skc.12
+        pe    = x.10^x.11
+        z     = inv(x.10^(x.11*~mc.12))
+        z.1   = x.10^(x.11*~ska.12*~skc.12)
+    
+    45. ~mc   = ~mc.13
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11))
+        z     = inv(x.12^(~mc.13*inv((~x.10*~x.11))))
+        z.1   = x.12
+    
+    46. ~mc   = ~mc.13
+        ~ska  = ~x.10
+        ~skc  = ~skc.13
+        pe    = x.12^inv(~x.10)
+        z     = inv(x.12^(~mc.13*inv(~x.10)))
+        z.1   = x.12^~skc.13
+    
+    47. ~mc   = ~mc.13
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = x.11^inv((~x.10*x.12))
+        z     = inv(x.11^(~mc.13*inv((~x.10*x.12))))
+        z.1   = x.11^(~ska.13*inv(x.12))
+    
+    48. ~mc   = ~mc.13
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = x.11^(x.12*inv(~x.10))
+        z     = inv(x.11^(x.12*~mc.13*inv(~x.10)))
+        z.1   = x.11^(x.12*~ska.13)
+    
+    49. ~mc   = ~mc.14
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11*x.13))
+        z     = inv(x.12^(~mc.14*inv((~x.10*~x.11*x.13))))
+        z.1   = x.12^inv(x.13)
+    
+    50. ~mc   = ~mc.14
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11)))
+        z     = inv(x.12^(x.13*~mc.14*inv((~x.10*~x.11))))
+        z.1   = x.12^x.13
+    
+    51. ~mc   = ~mc.14
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^inv((~x.10*x.13))
+        z     = inv(x.12^(~mc.14*inv((~x.10*x.13))))
+        z.1   = x.12^(~skc.14*inv(x.13))
+    
+    52. ~mc   = ~mc.14
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^(x.13*inv(~x.10))
+        z     = inv(x.12^(x.13*~mc.14*inv(~x.10)))
+        z.1   = x.12^(x.13*~skc.14)
+    
+    53. ~mc   = ~mc.14
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = x.11^(x.12*inv((~x.10*x.13)))
+        z     = inv(x.11^(x.12*~mc.14*inv((~x.10*x.13))))
+        z.1   = x.11^(x.12*~ska.14*inv(x.13))
+    
+    54. ~mc   = ~mc.15
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11*x.14)))
+        z     = inv(x.12^(x.13*~mc.15*inv((~x.10*~x.11*x.14))))
+        z.1   = x.12^(x.13*inv(x.14))
+    
+    55. ~mc   = ~mc.15
+        ~ska  = ~x.10
+        ~skc  = ~skc.15
+        pe    = x.12^(x.13*inv((~x.10*x.14)))
+        z     = inv(x.12^(x.13*~mc.15*inv((~x.10*x.14))))
+        z.1   = x.12^(x.13*~skc.15*inv(x.14))
+    
+    56. pe    = DH_neutral
+        z     = inv(DH_neutral)
+        z.1   = DH_neutral
+  */
+
+rule (modulo E) ClientDeriveSS:
+   [
+   ClientProduceKey( $AP, $Client, psk, pe, ~skc, inv(pe^~ma),
+                     add(~ma, ~ska)
+   )
+   ]
+  -->
+   [ ClientGetKey( $AP, $Client, psk, ~skc, pe^~ska^~skc ) ]
+
+  /*
+  rule (modulo AC) ClientDeriveSS:
+     [ ClientProduceKey( $AP, $Client, psk, pe, ~skc, z, add(~ma, ~ska) ) ]
+    -->
+     [ ClientGetKey( $AP, $Client, psk, ~skc, z.1 ) ]
+    variants (modulo AC)
+     1. ~ma   = ~ma.10
+        ~ska  = ~ska.10
+        ~skc  = ~skc.10
+        pe    = pe.10
+        z     = inv(pe.10^~ma.10)
+        z.1   = pe.10^(~ska.10*~skc.10)
+    
+     2. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.11
+        pe    = one^inv(~x.10)
+        z     = one
+        z.1   = one^~skc.11
+    
+     3. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11))
+        z     = inv(x.12^inv(~x.11))
+        z.1   = x.12
+    
+     4. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11*x.13))
+        z     = inv(x.12^inv((~x.11*x.13)))
+        z.1   = x.12^inv(x.13)
+    
+     5. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11)))
+        z     = inv(x.12^(x.13*inv(~x.11)))
+        z.1   = x.12^x.13
+    
+     6. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11*x.14)))
+        z     = inv(x.12^(x.13*inv((~x.11*x.14))))
+        z.1   = x.12^(x.13*inv(x.14))
+    
+     7. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.13
+        pe    = x.12^inv(~x.10)
+        z     = inv(x.12)
+        z.1   = x.12^~skc.13
+    
+     8. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.13
+        pe    = inv(x.12)^inv(~x.10)
+        z     = x.12
+        z.1   = inv(x.12)^~skc.13
+    
+     9. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^inv((~x.10*x.13))
+        z     = inv(x.12^inv(x.13))
+        z.1   = x.12^(~skc.14*inv(x.13))
+    
+    10. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^(x.13*inv(~x.10))
+        z     = inv(x.12^x.13)
+        z.1   = x.12^(x.13*~skc.14)
+    
+    11. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = (x.12*inv(x.13))^inv(~x.10)
+        z     = (x.13*inv(x.12))
+        z.1   = (x.12*inv(x.13))^~skc.14
+    
+    12. ~ma   = ~x.10
+        ~ska  = ~x.10
+        ~skc  = ~skc.15
+        pe    = x.12^(x.13*inv((~x.10*x.14)))
+        z     = inv(x.12^(x.13*inv(x.14)))
+        z.1   = x.12^(x.13*~skc.15*inv(x.14))
+    
+    13. ~ma   = ~x.10
+        ~ska  = ~ska.11
+        ~skc  = ~x.10
+        pe    = one^inv(~x.10)
+        z     = one
+        z.1   = one^~ska.11
+    
+    14. ~ma   = ~x.10
+        ~ska  = ~ska.11
+        ~skc  = ~skc.11
+        pe    = one^inv(~x.10)
+        z     = one
+        z.1   = one^(~ska.11*~skc.11*inv(~x.10))
+    
+    15. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^inv((~x.10*~x.11))
+        z     = inv(x.12^inv(~x.11))
+        z.1   = x.12
+    
+    16. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^inv((~x.10*~x.11*x.13))
+        z     = inv(x.12^inv((~x.11*x.13)))
+        z.1   = x.12^inv(x.13)
+    
+    17. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv((~x.10*~x.11)))
+        z     = inv(x.12^(x.13*inv(~x.11)))
+        z.1   = x.12^x.13
+    
+    18. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv((~x.10*~x.11*x.14)))
+        z     = inv(x.12^(x.13*inv((~x.11*x.14))))
+        z.1   = x.12^(x.13*inv(x.14))
+    
+    19. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.11*~x.12))
+        z     = inv(x.13^inv((~x.11*~x.12)))
+        z.1   = x.13^inv(~x.10)
+    
+    20. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.11*~x.12*x.14))
+        z     = inv(x.13^inv((~x.11*~x.12*x.14)))
+        z.1   = x.13^inv((~x.10*x.14))
+    
+    21. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.11*~x.12)))
+        z     = inv(x.13^(x.14*inv((~x.11*~x.12))))
+        z.1   = x.13^(x.14*inv(~x.10))
+    
+    22. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.11*~x.12*x.15)))
+        z     = inv(x.13^(x.14*inv((~x.11*~x.12*x.15))))
+        z.1   = x.13^(x.14*inv((~x.10*x.15)))
+    
+    23. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.14
+        pe    = x.13^inv((~x.10*~x.11))
+        z     = inv(x.13^inv(~x.11))
+        z.1   = x.13^(~skc.14*inv(~x.10))
+    
+    24. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.15
+        pe    = x.13^inv((~x.10*~x.11*x.14))
+        z     = inv(x.13^inv((~x.11*x.14)))
+        z.1   = x.13^(~skc.15*inv((~x.10*x.14)))
+    
+    25. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.15
+        pe    = x.13^(x.14*inv((~x.10*~x.11)))
+        z     = inv(x.13^(x.14*inv(~x.11)))
+        z.1   = x.13^(x.14*~skc.15*inv(~x.10))
+    
+    26. ~ma   = ~x.10
+        ~ska  = ~x.11
+        ~skc  = ~skc.16
+        pe    = x.13^(x.14*inv((~x.10*~x.11*x.15)))
+        z     = inv(x.13^(x.14*inv((~x.11*x.15))))
+        z.1   = x.13^(x.14*~skc.16*inv((~x.10*x.15)))
+    
+    27. ~ma   = ~x.10
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = x.12^inv(~x.10)
+        z     = inv(x.12)
+        z.1   = x.12^~ska.13
+    
+    28. ~ma   = ~x.10
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = inv(x.12)^inv(~x.10)
+        z     = x.12
+        z.1   = inv(x.12)^~ska.13
+    
+    29. ~ma   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = x.12^inv((~x.10*x.13))
+        z     = inv(x.12^inv(x.13))
+        z.1   = x.12^(~ska.14*inv(x.13))
+    
+    30. ~ma   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv(~x.10))
+        z     = inv(x.12^x.13)
+        z.1   = x.12^(x.13*~ska.14)
+    
+    31. ~ma   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = (x.12*inv(x.13))^inv(~x.10)
+        z     = (x.13*inv(x.12))
+        z.1   = (x.12*inv(x.13))^~ska.14
+    
+    32. ~ma   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.12))
+        z     = inv(x.13^inv(~x.12))
+        z.1   = x.13^(~ska.14*inv(~x.10))
+    
+    33. ~ma   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~skc.14
+        pe    = x.13^inv(~x.10)
+        z     = inv(x.13)
+        z.1   = x.13^(~ska.14*~skc.14*inv(~x.10))
+    
+    34. ~ma   = ~x.10
+        ~ska  = ~ska.14
+        ~skc  = ~skc.14
+        pe    = inv(x.13)^inv(~x.10)
+        z     = x.13
+        z.1   = inv(x.13)^(~ska.14*~skc.14*inv(~x.10))
+    
+    35. ~ma   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~x.10
+        pe    = x.12^(x.13*inv((~x.10*x.14)))
+        z     = inv(x.12^(x.13*inv(x.14)))
+        z.1   = x.12^(x.13*~ska.15*inv(x.14))
+    
+    36. ~ma   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~x.12
+        pe    = x.13^inv((~x.10*~x.12*x.14))
+        z     = inv(x.13^inv((~x.12*x.14)))
+        z.1   = x.13^(~ska.15*inv((~x.10*x.14)))
+    
+    37. ~ma   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.12)))
+        z     = inv(x.13^(x.14*inv(~x.12)))
+        z.1   = x.13^(x.14*~ska.15*inv(~x.10))
+    
+    38. ~ma   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~skc.15
+        pe    = x.13^inv((~x.10*x.14))
+        z     = inv(x.13^inv(x.14))
+        z.1   = x.13^(~ska.15*~skc.15*inv((~x.10*x.14)))
+    
+    39. ~ma   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~skc.15
+        pe    = x.13^(x.14*inv(~x.10))
+        z     = inv(x.13^x.14)
+        z.1   = x.13^(x.14*~ska.15*~skc.15*inv(~x.10))
+    
+    40. ~ma   = ~x.10
+        ~ska  = ~ska.15
+        ~skc  = ~skc.15
+        pe    = (x.13*inv(x.14))^inv(~x.10)
+        z     = (x.14*inv(x.13))
+        z.1   = (x.13*inv(x.14))^(~ska.15*~skc.15*inv(~x.10))
+    
+    41. ~ma   = ~x.10
+        ~ska  = ~ska.16
+        ~skc  = ~x.12
+        pe    = x.13^(x.14*inv((~x.10*~x.12*x.15)))
+        z     = inv(x.13^(x.14*inv((~x.12*x.15))))
+        z.1   = x.13^(x.14*~ska.16*inv((~x.10*x.15)))
+    
+    42. ~ma   = ~x.10
+        ~ska  = ~ska.16
+        ~skc  = ~skc.16
+        pe    = x.13^(x.14*inv((~x.10*x.15)))
+        z     = inv(x.13^(x.14*inv(x.15)))
+        z.1   = x.13^(x.14*~ska.16*~skc.16*inv((~x.10*x.15)))
+    
+    43. ~ma   = ~ma.12
+        ~ska  = ~ska.12
+        ~skc  = ~x.10
+        pe    = x.11^inv(~x.10)
+        z     = inv(x.11^(~ma.12*inv(~x.10)))
+        z.1   = x.11^~ska.12
+    
+    44. ~ma   = ~ma.12
+        ~ska  = ~ska.12
+        ~skc  = ~skc.12
+        pe    = x.10^x.11
+        z     = inv(x.10^(x.11*~ma.12))
+        z.1   = x.10^(x.11*~ska.12*~skc.12)
+    
+    45. ~ma   = ~ma.13
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11))
+        z     = inv(x.12^(~ma.13*inv((~x.10*~x.11))))
+        z.1   = x.12
+    
+    46. ~ma   = ~ma.13
+        ~ska  = ~x.10
+        ~skc  = ~skc.13
+        pe    = x.12^inv(~x.10)
+        z     = inv(x.12^(~ma.13*inv(~x.10)))
+        z.1   = x.12^~skc.13
+    
+    47. ~ma   = ~ma.13
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = x.11^inv((~x.10*x.12))
+        z     = inv(x.11^(~ma.13*inv((~x.10*x.12))))
+        z.1   = x.11^(~ska.13*inv(x.12))
+    
+    48. ~ma   = ~ma.13
+        ~ska  = ~ska.13
+        ~skc  = ~x.10
+        pe    = x.11^(x.12*inv(~x.10))
+        z     = inv(x.11^(x.12*~ma.13*inv(~x.10)))
+        z.1   = x.11^(x.12*~ska.13)
+    
+    49. ~ma   = ~ma.14
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^inv((~x.10*~x.11*x.13))
+        z     = inv(x.12^(~ma.14*inv((~x.10*~x.11*x.13))))
+        z.1   = x.12^inv(x.13)
+    
+    50. ~ma   = ~ma.14
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11)))
+        z     = inv(x.12^(x.13*~ma.14*inv((~x.10*~x.11))))
+        z.1   = x.12^x.13
+    
+    51. ~ma   = ~ma.14
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^inv((~x.10*x.13))
+        z     = inv(x.12^(~ma.14*inv((~x.10*x.13))))
+        z.1   = x.12^(~skc.14*inv(x.13))
+    
+    52. ~ma   = ~ma.14
+        ~ska  = ~x.10
+        ~skc  = ~skc.14
+        pe    = x.12^(x.13*inv(~x.10))
+        z     = inv(x.12^(x.13*~ma.14*inv(~x.10)))
+        z.1   = x.12^(x.13*~skc.14)
+    
+    53. ~ma   = ~ma.14
+        ~ska  = ~ska.14
+        ~skc  = ~x.10
+        pe    = x.11^(x.12*inv((~x.10*x.13)))
+        z     = inv(x.11^(x.12*~ma.14*inv((~x.10*x.13))))
+        z.1   = x.11^(x.12*~ska.14*inv(x.13))
+    
+    54. ~ma   = ~ma.15
+        ~ska  = ~x.10
+        ~skc  = ~x.11
+        pe    = x.12^(x.13*inv((~x.10*~x.11*x.14)))
+        z     = inv(x.12^(x.13*~ma.15*inv((~x.10*~x.11*x.14))))
+        z.1   = x.12^(x.13*inv(x.14))
+    
+    55. ~ma   = ~ma.15
+        ~ska  = ~x.10
+        ~skc  = ~skc.15
+        pe    = x.12^(x.13*inv((~x.10*x.14)))
+        z     = inv(x.12^(x.13*~ma.15*inv((~x.10*x.14))))
+        z.1   = x.12^(x.13*~skc.15*inv(x.14))
+    
+    56. pe    = DH_neutral
+        z     = inv(DH_neutral)
+        z.1   = DH_neutral
+  */
+
+rule (modulo E) ClientSendCommit:
+   [
+   ClientReadyCommit( $AP, $Client, psk, pe, ~skc, elta, eltc, scalara,
+                      scalarc
+   ),
+   ClientGetKey( $AP, $Client, psk, ~skc, ss )
+   ]
+  --[
+  LblClientSendCommit( $AP, $Client, psk, ss,
+                       h(<ss, 'DragonflyKeyDerivation', '0'>),
+                       h(<ss, 'DragonflyKeyDerivation', '1'>)
+  ),
+  ClientStartedKeys( $AP, $Client, h(<ss, 'DragonflyKeyDerivation', '1'>) )
+  ]->
+   [
+   ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara, scalarc, ss,
+                h(<ss, 'DragonflyKeyDerivation', '0'>),
+                h(<ss, 'DragonflyKeyDerivation', '1'>)
+   ),
+   Out( h(<h(<ss, 'DragonflyKeyDerivation', '0'>), scalarc, scalara, eltc, 
+           elta, $Client>)
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) APSendCommit:
+   [
+   APGetKey( $AP, $Client, psk, ~ska, ss ),
+   APStep1( $AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc ),
+   In( clientcommit )
+   ]
+  --[
+  Eq( clientcommit,
+      h(<h(<ss, 'DragonflyKeyDerivation', '0'>), scalarc, scalara, eltc, elta, 
+         $Client>)
+  ),
+  LblAPSentCommit( $AP, $Client, ss,
+                   h(<ss, 'DragonflyKeyDerivation', '0'>),
+                   h(<ss, 'DragonflyKeyDerivation', '1'>)
+  ),
+  APStartedKeys( $AP, $Client, h(<ss, 'DragonflyKeyDerivation', '1'>) ),
+  APEnded( $AP, $Client, elta, eltc, scalara, scalarc ),
+  APEndedKeys( $AP, $Client, h(<ss, 'DragonflyKeyDerivation', '1'>) )
+  ]->
+   [
+   Out( h(<h(<ss, 'DragonflyKeyDerivation', '0'>), scalara, scalarc, elta, 
+           eltc, $AP>)
+   ),
+   APSentCommit( $AP, $Client, psk, ~ska, elta, eltc, scalara, scalarc, ss,
+                 h(<ss, 'DragonflyKeyDerivation', '0'>),
+                 h(<ss, 'DragonflyKeyDerivation', '1'>)
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) ClientRecvCommit:
+   [
+   ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara, scalarc, ss,
+                kck, mk
+   ),
+   In( apcommit )
+   ]
+  --[
+  Eq( apcommit, h(<kck, scalara, scalarc, elta, eltc, $AP>) ),
+  LblClientRecvCommit( $AP, $Client, ss, kck, mk ),
+  ClientEnded( $AP, $Client, elta, eltc, scalara, scalarc ),
+  ClientEndedKeys( $AP, $Client, mk )
+  ]->
+   [
+   ClientRecvCommit( $AP, $Commit, psk, ~skc, elta, eltc, scalara, scalarc,
+                     ss, kck, mk
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+restriction RstrEq:
+  "∀ a b #i. (Eq( a, b ) @ #i) ⇒ (a = b)"
+  // safety formula
+
+lemma WorkingDH:
+  exists-trace
+  "∃ ap client psk pe ska elta eltc scalara scalarc ss kck mk #i #j.
+    (LblAPStarted( ap, client, psk, pe, ska, elta, eltc, scalara, scalarc
+     ) @ #i) ∧
+    (LblClientSendCommit( ap, client, psk, ss, kck, mk ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ ap client psk pe ska elta eltc scalara scalarc ss kck mk #i #j.
+  (LblAPStarted( ap, client, psk, pe, ska, elta, eltc, scalara, scalarc
+   ) @ #i) ∧
+  (LblClientSendCommit( ap, client, psk, ss, kck, mk ) @ #j)"
+*/
+simplify
+solve( APReady( $AP, $Client, psk, pe ) ▶₀ #i )
+  case CreateSession
+  solve( Random2( ~ska ) ▶₁ #i )
+    case GenRandom2
+    solve( Random3( ~ma ) ▶₂ #i )
+      case GenRandom3
+      solve( ClientReadyCommit( $AP, $Client, staticpsk, pe, ~skc, elta,
+                                eltc.1, scalara, scalarc.1
+             ) ▶₀ #j )
+        case ClientRecvPkey
+        solve( ClientGetKey( $AP, $Client, staticpsk, ~skc, ss ) ▶₁ #j )
+          case ClientDeriveSS
+          solve( !KU( add(~ma.1, ~ska.1) ) @ #vk.5 )
+            case APCreateSession
+            solve( !KU( h(<$AP, $Client, staticpsk>)^~ma.1 ) @ #vk.6 )
+              case APCreateSession_case_1
+              SOLVED // trace found
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma WorkingCommit:
+  exists-trace
+  "∃ ap client ss kck mk #i #j.
+    (LblAPSentCommit( ap, client, ss, kck, mk ) @ #i) ∧
+    (LblClientRecvCommit( ap, client, ss, kck, mk ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ ap client ss kck mk #i #j.
+  (LblAPSentCommit( ap, client, ss, kck, mk ) @ #i) ∧
+  (LblClientRecvCommit( ap, client, ss, kck, mk ) @ #j)"
+*/
+simplify
+solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+  case APDeriveSS
+  solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                  scalarc
+         ) ▶₁ #i )
+    case APCreateSession
+    solve( ClientStep2( $AP, $Client, psk, ~skc.1, elta, eltc, scalara,
+                        scalarc, h(<$AP, $Client, staticpsk>)^(~ska*~skc),
+                        h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                           '0'>),
+                        h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                           '1'>)
+           ) ▶₀ #j )
+      case ClientSendCommit
+      solve( !KU( h(<
+                     h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                        '0'>), 
+                     add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                     inv(h(<$AP, $Client, staticpsk>)^~ma), $Client>)
+             ) @ #vk )
+        case ClientSendCommit
+        solve( !KU( h(<
+                       h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                          '0'>), 
+                       add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                       inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+               ) @ #vk.1 )
+          case APSendCommit
+          solve( !KU( add(~mc, ~skc) ) @ #vk.4 )
+            case ClientCreateSession
+            solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.5 )
+              case ClientCreateSession_case_1
+              solve( !KU( add(~ma, ~ska) ) @ #vk.8 )
+                case APCreateSession
+                solve( !KU( h(<$AP, $Client, staticpsk>)^~ma ) @ #vk.9 )
+                  case APCreateSession_case_1
+                  SOLVED // trace found
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma InjAgreeClient:
+  all-traces
+  "∀ ap client elta eltc scalara scalarc #i.
+    (ClientEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i) ⇒
+    ((∃ #j.
+       ((APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #j) ∧
+        (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (ClientEnded( ap2, client2, elta, eltc, scalara, scalarc ) @ #i2) ∧
+           (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client elta eltc scalara scalarc #i.
+  (ClientEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i)
+ ∧
+  (∀ #j.
+    (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (ClientEnded( ap2, client2, elta, eltc, scalara, scalarc ) @ #i2)
+      ∧
+       ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara,
+                    scalarc, ss, kck, mk
+       ) ▶₀ #i )
+  case ClientSendCommit
+  solve( !KU( h(<
+                 h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                    '0'>), 
+                 add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                 inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+         ) @ #vk )
+    case ClientSendCommit
+    solve( !KU( add(~ma, ~ska) ) @ #vk.3 )
+      case ClientCreateSession
+      solve( !KU( h(<$AP, $AP, staticpsk>)^~ma ) @ #vk.4 )
+        case ClientCreateSession_case_1
+        solve( !KU( add(~mc, ~skc) ) @ #vk.7 )
+          case ClientCreateSession
+          solve( !KU( h(<$AP, $AP, staticpsk>)^~mc ) @ #vk.8 )
+            case ClientCreateSession_case_1
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma InjAgreeAP:
+  all-traces
+  "∀ ap client elta eltc scalara scalarc #i.
+    (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i) ⇒
+    ((∃ #j.
+       ((ClientStarted( ap, client, elta, eltc, scalara, scalarc ) @ #j) ∧
+        (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (APEnded( ap2, client2, elta, eltc, scalara, scalarc ) @ #i2) ∧
+           (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client elta eltc scalara scalarc #i.
+  (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i)
+ ∧
+  (∀ #j.
+    (ClientStarted( ap, client, elta, eltc, scalara, scalarc ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (APEnded( ap2, client2, elta, eltc, scalara, scalarc ) @ #i2)
+      ∧
+       ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+  case APDeriveSS
+  solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                  scalarc
+         ) ▶₁ #i )
+    case APCreateSession
+    solve( !KU( h(<
+                   h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                      '0'>), 
+                   add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                   inv(h(<$AP, $Client, staticpsk>)^~ma), $Client>)
+           ) @ #vk )
+      case c_h
+      solve( !KU( add(~mc, ~skc) ) @ #vk.4 )
+        case ClientCreateSession
+        solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.8 )
+          case ClientCreateSession_case_1
+          solve( !KU( h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 
+                         'DragonflyKeyDerivation', '0'>)
+                 ) @ #vk.9 )
+            case c_h
+            solve( !KU( h(<$AP, $Client, staticpsk>)^(~ska*~skc) ) @ #vk.16 )
+              case AttDerivePubKey_case_2
+              solve( !KU( h(<$AP, $Client, staticpsk>) ) @ #vk.20 )
+                case ClientCreateSession
+                solve( !KU( ~mc.1 ) @ #vk.26 )
+                  case ClientCreateSession
+                  solve( !KU( h(<$AP, $Client, staticpsk>)^~m ) @ #vk.23 )
+                    case APCreateSession_case_1
+                    solve( !KU( add(~m, ~ska) ) @ #vk.25 )
+                      case APCreateSession
+                      solve( !KU( ~skc ) @ #vk.23 )
+                        case GenRandom0
+                        solve( !KU( ~skc.1 ) @ #vk.24 )
+                          case GenRandom0
+                          SOLVED // trace found
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma NonInjAgreeClient:
+  all-traces
+  "∀ ap client elta eltc scalara scalarc #i.
+    (ClientEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i) ⇒
+    ((∃ #j.
+       (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client elta eltc scalara scalarc #i.
+  (ClientEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i)
+ ∧
+  (∀ #j.
+    (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #j)
+   ⇒
+    ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara,
+                    scalarc, ss, kck, mk
+       ) ▶₀ #i )
+  case ClientSendCommit
+  solve( !KU( h(<
+                 h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                    '0'>), 
+                 add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                 inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+         ) @ #vk )
+    case ClientSendCommit
+    solve( !KU( add(~ma, ~ska) ) @ #vk.3 )
+      case ClientCreateSession
+      solve( !KU( h(<$AP, $AP, staticpsk>)^~ma ) @ #vk.4 )
+        case ClientCreateSession_case_1
+        solve( !KU( add(~mc, ~skc) ) @ #vk.7 )
+          case ClientCreateSession
+          solve( !KU( h(<$AP, $AP, staticpsk>)^~mc ) @ #vk.8 )
+            case ClientCreateSession_case_1
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma NonInjAgreeAP:
+  all-traces
+  "∀ ap client elta eltc scalara scalarc #i.
+    (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i) ⇒
+    ((∃ #j.
+       (ClientStarted( ap, client, elta, eltc, scalara, scalarc ) @ #j) ∧
+       (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client elta eltc scalara scalarc #i.
+  (APEnded( ap, client, elta, eltc, scalara, scalarc ) @ #i)
+ ∧
+  (∀ #j.
+    (ClientStarted( ap, client, elta, eltc, scalara, scalarc ) @ #j)
+   ⇒
+    ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+  case APDeriveSS
+  solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                  scalarc
+         ) ▶₁ #i )
+    case APCreateSession
+    solve( !KU( h(<
+                   h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                      '0'>), 
+                   add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                   inv(h(<$AP, $Client, staticpsk>)^~ma), $Client>)
+           ) @ #vk )
+      case c_h
+      solve( !KU( add(~mc, ~skc) ) @ #vk.4 )
+        case ClientCreateSession
+        solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.8 )
+          case ClientCreateSession_case_1
+          solve( !KU( h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 
+                         'DragonflyKeyDerivation', '0'>)
+                 ) @ #vk.9 )
+            case c_h
+            solve( !KU( h(<$AP, $Client, staticpsk>)^(~ska*~skc) ) @ #vk.16 )
+              case AttDerivePubKey_case_2
+              solve( !KU( h(<$AP, $Client, staticpsk>) ) @ #vk.20 )
+                case ClientCreateSession
+                solve( !KU( ~mc.1 ) @ #vk.26 )
+                  case ClientCreateSession
+                  solve( !KU( h(<$AP, $Client, staticpsk>)^~m ) @ #vk.23 )
+                    case APCreateSession_case_1
+                    solve( !KU( add(~m, ~ska) ) @ #vk.25 )
+                      case APCreateSession
+                      solve( !KU( ~skc ) @ #vk.23 )
+                        case GenRandom0
+                        solve( !KU( ~skc.1 ) @ #vk.24 )
+                          case GenRandom0
+                          SOLVED // trace found
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma KeysInjAgreeClient:
+  all-traces
+  "∀ ap client mk #i.
+    (ClientEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((∃ #j.
+       ((APEndedKeys( ap, client, mk ) @ #j) ∧ (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (ClientEndedKeys( ap2, client2, mk ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (ClientEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∀ #j.
+    (APEndedKeys( ap, client, mk ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (ClientEndedKeys( ap2, client2, mk ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara,
+                    scalarc, ss, kck, mk
+       ) ▶₀ #i )
+  case ClientSendCommit
+  solve( !KU( h(<
+                 h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                    '0'>), 
+                 add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                 inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+         ) @ #vk )
+    case ClientSendCommit
+    solve( !KU( add(~ma, ~ska) ) @ #vk.3 )
+      case ClientCreateSession
+      solve( !KU( h(<$AP, $AP, staticpsk>)^~ma ) @ #vk.4 )
+        case ClientCreateSession_case_1
+        solve( !KU( add(~mc, ~skc) ) @ #vk.7 )
+          case ClientCreateSession
+          solve( !KU( h(<$AP, $AP, staticpsk>)^~mc ) @ #vk.8 )
+            case ClientCreateSession_case_1
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma KeysInjAgreeAP:
+  all-traces
+  "∀ ap client mk #i.
+    (APEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((∃ #j.
+       ((ClientStartedKeys( ap, client, mk ) @ #j) ∧ (#j < #i)) ∧
+       (¬(∃ ap2 client2 #i2.
+           (APEndedKeys( ap2, client2, mk ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (APEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∀ #j.
+    (ClientStartedKeys( ap, client, mk ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ ap2 client2 #i2.
+       (APEndedKeys( ap2, client2, mk ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+  case APDeriveSS
+  solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                  scalarc
+         ) ▶₁ #i )
+    case APCreateSession
+    solve( !KU( h(<
+                   h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                      '0'>), 
+                   add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                   inv(h(<$AP, $Client, staticpsk>)^~ma), $Client>)
+           ) @ #vk )
+      case c_h
+      solve( !KU( add(~mc, ~skc) ) @ #vk.4 )
+        case ClientCreateSession
+        solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.8 )
+          case ClientCreateSession_case_1
+          solve( !KU( h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 
+                         'DragonflyKeyDerivation', '0'>)
+                 ) @ #vk.9 )
+            case c_h
+            solve( !KU( h(<$AP, $Client, staticpsk>)^(~ska*~skc) ) @ #vk.16 )
+              case AttDerivePubKey_case_2
+              solve( !KU( h(<$AP, $Client, staticpsk>) ) @ #vk.20 )
+                case ClientCreateSession
+                solve( !KU( ~mc.1 ) @ #vk.26 )
+                  case ClientCreateSession
+                  solve( !KU( h(<$AP, $Client, staticpsk>)^~m ) @ #vk.23 )
+                    case APCreateSession_case_1
+                    solve( !KU( add(~m, ~ska) ) @ #vk.25 )
+                      case APCreateSession
+                      solve( !KU( ~skc ) @ #vk.23 )
+                        case GenRandom0
+                        solve( !KU( ~skc.1 ) @ #vk.24 )
+                          case GenRandom0
+                          SOLVED // trace found
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma KeysNonInjAgreeClient:
+  all-traces
+  "∀ ap client mk #i.
+    (ClientEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((∃ #j. (APEndedKeys( ap, client, mk ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (ClientEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∀ #j. (APEndedKeys( ap, client, mk ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara,
+                    scalarc, ss, kck, mk
+       ) ▶₀ #i )
+  case ClientSendCommit
+  solve( !KU( h(<
+                 h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                    '0'>), 
+                 add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                 inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+         ) @ #vk )
+    case ClientSendCommit
+    solve( !KU( add(~ma, ~ska) ) @ #vk.3 )
+      case ClientCreateSession
+      solve( !KU( h(<$AP, $AP, staticpsk>)^~ma ) @ #vk.4 )
+        case ClientCreateSession_case_1
+        solve( !KU( add(~mc, ~skc) ) @ #vk.7 )
+          case ClientCreateSession
+          solve( !KU( h(<$AP, $AP, staticpsk>)^~mc ) @ #vk.8 )
+            case ClientCreateSession_case_1
+            SOLVED // trace found
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma KeysNonInjAgreeAP:
+  all-traces
+  "∀ ap client mk #i.
+    (APEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((∃ #j. (ClientStartedKeys( ap, client, mk ) @ #j) ∧ (#j < #i)) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (APEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∀ #j. (ClientStartedKeys( ap, client, mk ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+  case APDeriveSS
+  solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                  scalarc
+         ) ▶₁ #i )
+    case APCreateSession
+    solve( !KU( h(<
+                   h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                      '0'>), 
+                   add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                   inv(h(<$AP, $Client, staticpsk>)^~ma), $Client>)
+           ) @ #vk )
+      case c_h
+      solve( !KU( add(~mc, ~skc) ) @ #vk.4 )
+        case ClientCreateSession
+        solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.8 )
+          case ClientCreateSession_case_1
+          solve( !KU( h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 
+                         'DragonflyKeyDerivation', '0'>)
+                 ) @ #vk.9 )
+            case c_h
+            solve( !KU( h(<$AP, $Client, staticpsk>)^(~ska*~skc) ) @ #vk.16 )
+              case AttDerivePubKey_case_2
+              solve( !KU( h(<$AP, $Client, staticpsk>) ) @ #vk.20 )
+                case ClientCreateSession
+                solve( !KU( ~mc.1 ) @ #vk.26 )
+                  case ClientCreateSession
+                  solve( !KU( h(<$AP, $Client, staticpsk>)^~m ) @ #vk.23 )
+                    case APCreateSession_case_1
+                    solve( !KU( add(~m, ~ska) ) @ #vk.25 )
+                      case APCreateSession
+                      solve( !KU( ~skc ) @ #vk.23 )
+                        case GenRandom0
+                        solve( !KU( ~skc.1 ) @ #vk.24 )
+                          case GenRandom0
+                          SOLVED // trace found
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma WeakSecrecyAP:
+  all-traces
+  "∀ ap client mk #i.
+    (APEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((¬(∃ #j. K( mk ) @ #j)) ∨ (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (APEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∃ #j. (K( mk ) @ #j)) ∧ (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+  case APDeriveSS
+  solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                  scalarc
+         ) ▶₁ #i )
+    case APCreateSession
+    solve( !KU( h(<
+                   h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                      '0'>), 
+                   add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                   inv(h(<$AP, $Client, staticpsk>)^~ma), $Client>)
+           ) @ #vk )
+      case ClientSendCommit
+      solve( !KU( h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 
+                     'DragonflyKeyDerivation', '1'>)
+             ) @ #vk.1 )
+        case c_h
+        solve( !KU( h(<$AP, $Client, staticpsk>)^(~ska*~skc) ) @ #vk.11 )
+          case AttDerivePubKey_case_2
+          solve( !KU( h(<$AP, $Client, staticpsk>) ) @ #vk.15 )
+            case ClientCreateSession
+            solve( !KU( ~mc.1 ) @ #vk.21 )
+              case ClientCreateSession
+              solve( !KU( h(<$AP, $Client, staticpsk>)^~m ) @ #vk.18 )
+                case APCreateSession_case_1
+                solve( !KU( add(~m, ~ska) ) @ #vk.20 )
+                  case APCreateSession
+                  solve( !KU( ~skc ) @ #vk.18 )
+                    case GenRandom0
+                    solve( !KU( ~skc.1 ) @ #vk.19 )
+                      case GenRandom0
+                      solve( !KU( add(~mc, ~skc) ) @ #vk.15 )
+                        case ClientCreateSession
+                        solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.16 )
+                          case ClientCreateSession_case_1
+                          SOLVED // trace found
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma WeakSecrecyClient:
+  all-traces
+  "∀ ap client mk #i.
+    (ClientEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((¬(∃ #j. K( mk ) @ #j)) ∨ (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (ClientEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∃ #j. (K( mk ) @ #j)) ∧ (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara,
+                    scalarc, ss, kck, mk
+       ) ▶₀ #i )
+  case ClientSendCommit
+  solve( !KU( h(<
+                 h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                    '0'>), 
+                 add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                 inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+         ) @ #vk )
+    case APSendCommit
+    solve( !KU( h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 
+                   'DragonflyKeyDerivation', '1'>)
+           ) @ #vk.1 )
+      case c_h
+      solve( !KU( h(<$AP, $Client, staticpsk>)^(~ska*~skc) ) @ #vk.12 )
+        case AttDerivePubKey_case_2
+        solve( !KU( h(<$AP, $Client, staticpsk>) ) @ #vk.16 )
+          case ClientCreateSession
+          solve( !KU( ~mc.1 ) @ #vk.22 )
+            case ClientCreateSession
+            solve( !KU( h(<$AP, $Client, staticpsk>)^~m ) @ #vk.19 )
+              case APCreateSession_case_1
+              solve( !KU( add(~m, ~ska) ) @ #vk.21 )
+                case APCreateSession
+                solve( !KU( ~skc ) @ #vk.19 )
+                  case GenRandom0
+                  solve( !KU( ~skc.1 ) @ #vk.20 )
+                    case GenRandom0
+                    solve( !KU( h(<
+                                   h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                                      '0'>), 
+                                   add(~mc, ~skc), add(~m, ~ska), inv(h(<$AP, $Client, staticpsk>)^~mc), 
+                                   inv(h(<$AP, $Client, staticpsk>)^~m), $Client>)
+                           ) @ #vk.13 )
+                      case ClientSendCommit
+                      solve( !KU( add(~mc, ~skc) ) @ #vk.16 )
+                        case ClientCreateSession
+                        solve( !KU( h(<$AP, $Client, staticpsk>)^~mc ) @ #vk.17 )
+                          case ClientCreateSession_case_1
+                          SOLVED // trace found
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma KeyFreshnessClient:
+  all-traces
+  "∀ ap client mk #i.
+    (ClientEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((¬(∃ ap2 client2 #j.
+         (ClientEndedKeys( ap2, client2, mk ) @ #j) ∧ (¬(#j = #i)))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (ClientEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∃ ap2 client2 #j.
+    (ClientEndedKeys( ap2, client2, mk ) @ #j) ∧ ¬(#j = #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (#j < #i)  ∥ (#i < #j) )
+  case case_1
+  solve( ClientStep2( $AP, $Client, psk, ~skc, elta, eltc, scalara,
+                      scalarc, ss, kck, mk
+         ) ▶₀ #i )
+    case ClientSendCommit
+    solve( ClientStep2( $AP.1, $Client.1, psk, ~skc.1, elta, eltc, scalara,
+                        scalarc, ss, kck,
+                        h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                           '1'>)
+           ) ▶₀ #j )
+      case ClientSendCommit_case_1
+      solve( !KU( h(<
+                     h(<h(<$AP, $Client, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', 
+                        '0'>), 
+                     add(~ma, ~ska), add(~mc, ~skc), inv(h(<$AP, $Client, staticpsk>)^~ma), 
+                     inv(h(<$AP, $Client, staticpsk>)^~mc), $AP>)
+             ) @ #vk )
+        case ClientSendCommit
+        solve( !KU( h(<
+                       h(<h(<$AP, $AP, staticpsk>)^(~ska*~skc), 'DragonflyKeyDerivation', '0'
+                         >), 
+                       add(~mc, ~skc), add(~ma, ~ska), inv(h(<$AP, $AP, staticpsk>)^~mc), 
+                       inv(h(<$AP, $AP, staticpsk>)^~ma), $AP>)
+               ) @ #vk.1 )
+          case ClientSendCommit
+          solve( !KU( add(~ma, ~ska) ) @ #vk.4 )
+            case ClientCreateSession
+            solve( !KU( h(<$AP, $AP, staticpsk>)^~ma ) @ #vk.5 )
+              case ClientCreateSession_case_1
+              solve( !KU( add(~mc, ~skc) ) @ #vk.8 )
+                case ClientCreateSession
+                solve( !KU( h(<$AP, $AP, staticpsk>)^~mc ) @ #vk.9 )
+                  case ClientCreateSession_case_1
+                  SOLVED // trace found
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma KeyFreshnessAP:
+  all-traces
+  "∀ ap client mk #i.
+    (APEndedKeys( ap, client, mk ) @ #i) ⇒
+    ((¬(∃ ap2 client2 #j.
+         (APEndedKeys( ap2, client2, mk ) @ #j) ∧ (¬(#j = #i)))) ∨
+     (∃ #r. RevLtk( ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ ap client mk #i.
+  (APEndedKeys( ap, client, mk ) @ #i)
+ ∧
+  (∃ ap2 client2 #j. (APEndedKeys( ap2, client2, mk ) @ #j) ∧ ¬(#j = #i)) ∧
+  (∀ #r. (RevLtk( ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( (#j < #i)  ∥ (#i < #j) )
+  case case_1
+  solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+    case APDeriveSS
+    solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                    scalarc
+           ) ▶₁ #i )
+      case APCreateSession
+      solve( APGetKey( $AP.1, $Client.1, psk, ~ska.1,
+                       h(<$AP, $Client, staticpsk>)^(~ska*~skc)
+             ) ▶₀ #j )
+        case APDeriveSS_case_1
+        by contradiction /* cyclic */
+      next
+        case APDeriveSS_case_2
+        by contradiction /* cyclic */
+      qed
+    qed
+  qed
+next
+  case case_2
+  solve( APGetKey( $AP, $Client, psk, ~ska, ss ) ▶₀ #i )
+    case APDeriveSS
+    solve( APStep1( $AP, $Client, staticpsk, pe, ~ska, elta, eltc, scalara,
+                    scalarc
+           ) ▶₁ #i )
+      case APCreateSession
+      solve( APGetKey( $AP.1, $Client.1, psk, ~ska.1,
+                       h(<$AP, $Client, staticpsk>)^(~ska*~skc)
+             ) ▶₀ #j )
+        case APDeriveSS_case_1
+        by contradiction /* cyclic */
+      next
+        case APDeriveSS_case_2
+        by contradiction /* cyclic */
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Derivation Checks
+=================
+
+  Derivation checks timed out. Use --derivcheck-timeout=INT to configure timeout, 0 to deactivate.
+*/
+
+/*
+Generated from:
+Tamarin version 1.8.0
+Maude version 3.2.1
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-07-03 10:29:46.356726589 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: /tmp/model.spthy
+
+  processing time: 491.61s
+  
+  WARNING: 1 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  WorkingDH (exists-trace): verified (9 steps)
+  WorkingCommit (exists-trace): verified (11 steps)
+  InjAgreeClient (all-traces): falsified - found trace (8 steps)
+  InjAgreeAP (all-traces): falsified - found trace (15 steps)
+  NonInjAgreeClient (all-traces): falsified - found trace (8 steps)
+  NonInjAgreeAP (all-traces): falsified - found trace (15 steps)
+  KeysInjAgreeClient (all-traces): falsified - found trace (8 steps)
+  KeysInjAgreeAP (all-traces): falsified - found trace (15 steps)
+  KeysNonInjAgreeClient (all-traces): falsified - found trace (8 steps)
+  KeysNonInjAgreeAP (all-traces): falsified - found trace (15 steps)
+  WeakSecrecyAP (all-traces): falsified - found trace (15 steps)
+  WeakSecrecyClient (all-traces): falsified - found trace (15 steps)
+  KeyFreshnessClient (all-traces): falsified - found trace (11 steps)
+  KeyFreshnessAP (all-traces): verified (12 steps)
+
+==============================================================================

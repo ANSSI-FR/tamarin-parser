@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Model execution</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.min.css") }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/results.css") }}">
+	</head>
+	<body>
+<div class="container">
+			<div class="text-center">
+		<h1>Runner</h1>
+
+		<h3><a href="/{{file.uuid}}/file">{{ file.name }}</a></h3>
+			</div>
+
+    {% for lemma in lemmas %}
+        <h4 class="underline {% if lemma.value %}alert alert-success{% else %}alert alert-danger{% endif %}">Lemma: {{ lemma.lemma_name }} ({{ lemma.type }}): {% if lemma.value %}<span class="checkmark"></span>{% else %}<span class="koglyph"></span>{% endif %}</h4>
+    {% endfor %}
+</div>
+</body>
+</html>
+
+

@@ -1,0 +1,379 @@
+theory ISO9798_2_6_979826_reuse_once_0_1
+begin
+
+functions: senc/4,
+		sdec/4,
+		sid1_tp_cr/0,
+		sid2_tp_cr/0,
+		sid3_tp_cr/0,
+		sid4_tp_cr/0,
+		idP/0,
+		h/1
+
+equations: sdec(k, n, ad, senc(k, m, n, ad)) = m
+
+tactic: provesources
+prio:
+    regex "senc.*kAB.*x.*"
+
+
+tactic: agreea
+prio:
+    regex "senc\(~kAP.*"
+
+
+tactic: agreeb
+prio:
+    regex "senc\(~kBP.*"
+
+
+rule MisGenerateRandoms:
+	[
+		Fr(~RB0),
+		Fr(~RA1)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		Random0(~RB0),
+		Random1(~RB0)
+	]
+
+rule GenRandom7:
+	[
+		Fr(~n47)
+	]
+	-->
+	[
+		Random7(~n47)
+	]
+
+rule GenRandom6:
+	[
+		Fr(~n36)
+	]
+	-->
+	[
+		Random6(~n36)
+	]
+
+rule GenRandom5:
+	[
+		Fr(~RA25)
+	]
+	-->
+	[
+		Random5(~RA25)
+	]
+
+rule GenRandom4:
+	[
+		Fr(~n24)
+	]
+	-->
+	[
+		Random4(~n24)
+	]
+
+rule GenRandom3:
+	[
+		Fr(~n13)
+	]
+	-->
+	[
+		Random3(~n13)
+	]
+
+rule GenRandom2:
+	[
+		Fr(~kAB2)
+	]
+	-->
+	[
+		Random2(~kAB2)
+	]
+
+rule GenRandom1:
+	[
+		Fr(~RA1)
+	]
+	-->
+	[
+		Random1(~RA1)
+	]
+
+rule GenRandom0:
+	[
+		Fr(~RB0)
+	]
+	-->
+	[
+		Random0(~RB0)
+	]
+
+rule GenKeyMal:
+	[
+		In(key)
+	]
+	-->
+	[
+		!Key(key)
+	]
+
+rule GenMSpace:
+	[
+		In(m)
+	]
+	-->
+	[
+		!M(m)
+	]
+
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+restriction notsame:
+	"All x y #i . 
+	NotM(x, y) @ i ==> not (x = y)"
+
+#ifdef n_reuse_keyleak
+rule nonce_reuse_1:
+	[
+		In(senc(k, m, n, ad)),
+		In(senc(k, m2, n, ad)),
+		!Key(k)
+	]
+	--[
+		NotM(m, m2),
+		LReuse(k)
+	]->
+	[
+		Out(k)
+	]
+
+#endif
+#ifdef n_reuse_messleak
+rule nonce_reuse_2:
+	[
+		In(senc(k, m, n, ad)),
+		In(senc(k, m2, n, ad)),
+		!M(m),
+		!M(m2)
+	]
+	--[
+		NotM(m, m2),
+		LReuse(m),
+		LReuse(m2)
+	]->
+	[
+		Out(< m, m2 >)
+	]
+
+#endif
+rule AttackerInitRoles:
+	[
+		
+	]
+	--[
+		
+	]->
+	[
+		Out(< $IdA, $IdB >)
+	]
+
+rule CreateAssociation:
+	[
+		In(< $IdA, $IdB, idP >),
+		Fr(~kAP),
+		Fr(~kBP)
+	]
+	-->
+	[
+		!RoleA(idP, $IdA, $IdB, ~kAP),
+		!RoleB(idP, $IdA, $IdB, ~kBP),
+		!RoleP(idP, $IdA, $IdB, ~kAP, ~kBP),
+		!Ltk($IdA, ~kAP),
+		!Ltk(idP, ~kAP),
+		!Ltk($IdB, ~kBP),
+		!Ltk(idP, ~kBP)
+	]
+
+rule RevLtk:
+	[
+		!Ltk(A, k)
+	]
+	--[
+		RevLtk(A)
+	]->
+	[
+		Out(k)
+	]
+
+rule CreateSession:
+	[
+		!RoleA(idP, $IdA, $IdB, ~kAP),
+		!RoleB(idP, $IdA, $IdB, ~kBP),
+		!RoleP(idP, $IdA, $IdB, ~kAP, ~kBP)
+	]
+	-->
+	[
+		StartA(idP, $IdA, $IdB, ~kAP),
+		StartB(idP, $IdA, $IdB, ~kBP),
+		StartP(idP, $IdA, $IdB, ~kAP, ~kBP)
+	]
+
+rule RoleB_1:
+	[
+		StartB(idP, $IdA, $IdB, ~kBP),
+		Random0(~RB),
+		Fr(~Text1)
+	]
+	--[
+		BSendElt(idP, $IdA, $IdB, ~kBP, ~Text1, ~RB),
+		BStarted(idP, $IdA, $IdB, ~RB)
+	]->
+	[
+		Out(< ~RB, ~Text1 >),
+		Step1B(idP, $IdA, $IdB, ~kBP, ~RB)
+	]
+
+rule RoleA_1:
+	[
+		StartA(idP, $IdA, $IdB, ~kAP),
+		Random1(~RA),
+		In(< RB, Text1 >),
+		Fr(~Text2)
+	]
+	--[
+		ASendMsgP(idP, $IdA, $IdB, ~kAP, ~RA, RB, $IdB, ~Text2)
+	]->
+	[
+		Out(< ~RA, RB, $IdB, ~Text2 >),
+		Step1A(idP, $IdA, $IdB, ~kAP, ~RA, RB, ~Text2)
+	]
+
+rule RoleP_1:
+	[
+		StartP(idP, $IdA, $IdB, ~kAP, ~kBP),
+		In(< RA, RB, Text2 >),
+		Fr(~Text3),
+		Fr(~Text4),
+		Fr(~Text5),
+		Random2(~kAB),
+		Random3(~n1),
+		Random4(~n2)
+	]
+	--[
+		PSendTokenPA(idP, $IdA, $IdB, ~kAP, ~kBP, RA, RB, $IdB, ~Text3, ~Text4, ~Text5)
+	]->
+	[
+		Out(< ~Text5, ~n1, ~n2, senc(~kAP, < sid1_tp_cr, RA, ~kAB, $IdB, ~Text4 >, ~n1, 'ad'), senc(~kBP, < sid2_tp_cr, RB, ~kAB, $IdA, ~Text3 >, ~n2, 'ad') >),
+		Step1P(idP, $IdA, $IdB, ~kAP, ~kBP, ~kAB, RA, RB),
+		!Key(~kAP),
+		!Key(~kBP),
+		!M(< sid1_tp_cr, RA, ~kAB, $IdB, ~Text4 >),
+		!M(< sid2_tp_cr, RB, ~kAB, $IdA, ~Text3 >)
+	]
+
+rule RoleA_2:
+	[
+		Step1A(idP, $IdA, $IdB, ~kAP, ~RA, RB, ~Text2),
+		In(< Text5, n1, n2, senc(~kAP, < sid1_tp_cr, ~RA, ~kAB, $IdB, Text4 >, n1, 'ad'), tokenPB >),
+		Random5(~RA2),
+		Fr(~Text6),
+		Fr(~Text7),
+		Random6(~n3)
+	]
+	--[
+		AUTO_OUT_TERM_1_0_1_1_1_1_1_1_0__RoleB_2(senc(~kAB, < sid3_tp_cr, ~RA2, RB, ~Text6 >, ~n3, 'ad')),
+		ASendTokenAB($IdA, $IdB, ~kAB, ~RA2, RB, ~Text6),
+		AStarted(idP, $IdA, $IdB, ~RA2, RB)
+	]->
+	[
+		Out(< ~Text7, n2, ~n3, tokenPB, senc(~kAB, < sid3_tp_cr, ~RA2, RB, ~Text6 >, ~n3, 'ad') >),
+		Step2A(idP, $IdA, $IdB, ~kAP, ~kAB, ~RA2, RB, ~Text2, ~Text6),
+		!Key(~kAB),
+		!M(< sid3_tp_cr, ~RA2, RB, ~Text6 >)
+	]
+
+rule RoleB_2:
+	[
+		Step1B(idP, $IdA, $IdB, ~kBP, ~RB),
+		In(< Text3, n2, n3, senc(~kBP, < sid2_tp_cr, ~RB, ~kAB, $IdB, Text4 >, n2, 'ad'), senc(~kAB, < sid3_tp_cr, RA2, ~RB, Text6 >, n3, 'ad') >),
+		Fr(~Text8),
+		Fr(~Text9),
+		Random7(~n4)
+	]
+	--[
+		AUTO_IN_TERM_1_0_1_1_1_1_1_1_0__RoleB_2(senc(~kAB, < sid3_tp_cr, RA2, ~RB, Text6 >, n3, 'ad'), RA2),
+		BRecvTokenAB($IdA, $IdB, ~kAB, RA2, ~RB, Text6),
+		BSendTokenBA($IdA, $IdB, ~kAB, RA2, ~RB, ~Text8),
+		BEnded(idP, $IdA, $IdB, RA2, ~RB)
+	]->
+	[
+		Out(< ~Text9, ~n4, senc(~kAB, < sid4_tp_cr, RA2, ~Text8 >, ~n4, 'ad') >),
+		!Key(~kAB),
+		!M(< sid4_tp_cr, RA2, ~Text8 >)
+	]
+
+rule RoleA_3:
+	[
+		Step2A(idP, $IdA, $IdB, ~kAP, kAB, ~RA2, RB, ~Text2, ~Text6),
+		In(< Text9, n4, senc(kAB, < sid4_tp_cr, ~RA2, $IdB, Text8 >, n4, 'ad') >)
+	]
+	--[
+		ARecvTokenBA($IdA, $IdB, kAB, ~RA2, RB, Text8),
+		AEnded(idP, $IdA, $IdB, ~RA2, RB)
+	]->
+	[
+		
+	]
+
+lemma noReuse [reuse]: all-traces
+" ∀ x #i . 
+	(LReuse(x) @ #i) ⇒ (∃ #r . 
+	(!KU(x) @ #r) ∧ (#r < #i)) "
+
+lemma agree_a [heuristic= {agreea}]:
+" All p ida idb ra rb #i . 
+	AEnded(p, ida, idb, ra, rb) @ i ==> (Ex #j . 
+	BEnded(p, ida, idb, ra, rb) @ j & j < i & not (Ex p2 ida2 idb2 #i2 . 
+	AEnded(p2, ida2, idb2, ra, rb) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(p) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma agree_b [heuristic= {agreeb}]:
+" All p ida idb ra rb #i . 
+	BEnded(p, ida, idb, ra, rb) @ i ==> (Ex #j . 
+	AStarted(p, ida, idb, ra, rb) @ j & j < i & not (Ex p2 ida2 idb2 #i2 . 
+	BEnded(p2, ida2, idb2, ra, rb) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(p) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma noninj_agree_a [heuristic= {agreea}]:
+" All p ida idb ra rb #i . 
+	AEnded(p, ida, idb, ra, rb) @ i ==> (Ex #j . 
+	BEnded(p, ida, idb, ra, rb) @ j & j < i) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(p) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma noninj_agree_b [heuristic= {agreeb}]:
+" All p ida idb ra rb #i . 
+	BEnded(p, ida, idb, ra, rb) @ i ==> (Ex #j . 
+	AStarted(p, ida, idb, ra, rb) @ j & j < i) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(p) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma AUTO_typing [sources, heuristic= {provesources}]: all-traces
+" (⊤) ∧ (∀ x m #i . 
+	(AUTO_IN_TERM_1_0_1_1_1_1_1_1_0__RoleB_2(m, x) @ #i) ⇒ ((∃ #j . 
+	(!KU(x) @ #j) ∧ (#j < #i)) ∨ (∃ #j . 
+	(AUTO_OUT_TERM_1_0_1_1_1_1_1_1_0__RoleB_2(m) @ #j) ∧ (#j < #i)))) "
+
+
+end

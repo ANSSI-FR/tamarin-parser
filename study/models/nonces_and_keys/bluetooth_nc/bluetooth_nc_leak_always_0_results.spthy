@@ -1,0 +1,1669 @@
+theory bluetooth_valid_curve_bluetooth_nc_leak_always_0 begin
+
+// Function signature and definition of the equational theory E
+
+builtins: diffie-hellman
+functions: element/3, extract_element/1, fst/1, g2/0, get_code/4,
+           get_nonceI/4, get_nonceR/4, h/1, pair/2, snd/1
+equations:
+    extract_element(element(t, s, n)) = n,
+    fst(<x.1, x.2>) = x.1,
+    h(<g2, pkI, pkR, iN, get_nonceR(code, pkI, pkR, iN)>) = code,
+    h(<g2, pkI, pkR, get_nonceI(code, pkI, pkR, rN), rN>) = code,
+    snd(<x.1, x.2>) = x.2
+
+
+
+
+
+
+
+
+
+restriction Consistency:
+  "∀ t s r1 r2 y #i #j.
+    ((Raised( t, s, r1, y ) @ #i) ∧ (Raised( t, s, r2, y ) @ #j)) ⇒
+    (r1 = r2)"
+  // safety formula
+
+restriction Identity:
+  "∀ t r y #i. (Raised( t, DH_neutral, r, y ) @ #i) ⇒ (r = DH_neutral)"
+  // safety formula
+
+rule (modulo E) GenRandom3:
+   [ Fr( ~iN3 ) ] --> [ Random3( ~iN3 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom2:
+   [ Fr( ~rN2 ) ] --> [ Random2( ~rN2 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom1:
+   [ Fr( ~ephr1 ) ] --> [ Random1( ~ephr1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom0:
+   [ Fr( ~ephi0 ) ] --> [ Out( ~ephi0 ), Random0( ~ephi0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Create_Device:
+   [ Fr( ~did ), Fr( ~id ), Fr( ~cap ) ]
+  -->
+   [ !Device( ~did, ~id, ~cap ), Out( <~id, ~cap> ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Begin_DH_Exchange:
+   [
+   !Device( ~did, ~idI, ~capI ), Fr( ~sid ), Random0( ~ephi ),
+   !Device( ~did2, ~idR, ~capR )
+   ]
+  -->
+   [
+   Init_Begin_DH( ~sid, ~did, ~ephi ),
+   Out( <element('C', DH_neutral, 'g'^~ephi), 
+         element('C', DH_neutral, 'g'^~ephi)>
+   ),
+   Out( <~idI, ~capI> ), !Init_Intended( ~sid, ~idR, ~capR ),
+   !Ltk( ~idI, ~ephi )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Resp_DH_Exchange:
+   [
+   !Device( ~did, ~idR, ~capR ), Fr( ~sid ), Random1( ~ephr ), In( iPK ),
+   In( <~idI, ~capI> ), !Device( ~did2, ~idI, ~capI )
+   ]
+  -->
+   [
+   Resp_Finish_DH( ~sid, ~did, ~ephr, iPK ),
+   Out( <element('C', DH_neutral, 'g'^~ephr), 
+         element('C', DH_neutral, 'g'^~ephr)>
+   ),
+   !Resp_Intended( ~sid, ~idI, ~capI ), !Ltk( ~idR, ~ephr )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Finish_DH_Exchange:
+   [ Init_Begin_DH( ~sid, ~did, ~eph ), In( rPK ) ]
+  -->
+   [ Init_Finish_DH( ~sid, ~did, ~eph, rPK ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Resp_Begin_Auth:
+   [ Resp_Finish_DH( ~sid, ~did, ~eph, <x, y> ), Random2( ~rN ) ]
+  -->
+   [
+   Resp_Begin_Auth( ~sid, ~did, ~eph, <x, y>, ~rN ),
+   Out( h(<'Cb', element('C', DH_neutral, 'g'^~eph), x, ~rN, '0'>) )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Begin_Auth:
+   [ In( Cb ), Random3( ~iN ), Init_Finish_DH( ~sid, ~did, ~eph, rPk ) ]
+  -->
+   [ Out( ~iN ), Init_Begin_Auth( ~sid, ~did, ~eph, rPk, ~iN, Cb ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Resp_Finish_Auth:
+   [ Resp_Begin_Auth( ~sid, ~did, ~eph, iPk, ~rN ), In( iN ) ]
+  -->
+   [ Out( ~rN ), Resp_Finish_Auth( ~sid, ~did, ~eph, iPk, ~rN, iN ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Init_Finish_Auth:
+   [ In( rN ), Init_Begin_Auth( ~sid, ~did, ~eph, <x, y>, ~iN, Cb ) ]
+  --[ Eq( Cb, h(<'Cb', x, element('C', DH_neutral, 'g'^~eph), rN, '0'>) )
+  ]->
+   [ Init_Finish_Auth( ~sid, ~did, ~eph, <x, y>, ~iN, rN ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Compare_Digits:
+   [
+   Init_Finish_Auth( ~sidI, ~didI, ~ephI, <xrI, yrI>, ~iNI, rNI ),
+   Resp_Finish_Auth( ~sidR, ~didR, ~ephR, <xiR, yiR>, ~rNR, iNR )
+   ]
+  --[
+  Eq( h(<g2, element('C', DH_neutral, 'g'^~ephI), xrI, ~iNI, rNI>),
+      h(<g2, xiR, element('C', DH_neutral, 'g'^~ephR), iNR, ~rNR>)
+  )
+  ]->
+   [
+   Init_Finish_Compare( ~sidI, ~didI, ~ephI, <xrI, yrI>, ~iNI, rNI ),
+   Resp_Finish_Compare( ~sidR, ~didR, ~ephR, <xiR, yiR>, ~rNR, iNR )
+   ]
+
+  /*
+  rule (modulo AC) Compare_Digits:
+     [
+     Init_Finish_Auth( ~sidI, ~didI, ~ephI, <xrI, yrI>, ~iNI, rNI ),
+     Resp_Finish_Auth( ~sidR, ~didR, ~ephR, <xiR, yiR>, ~rNR, iNR )
+     ]
+    --[ Eq( z, z.1 ) ]->
+     [
+     Init_Finish_Compare( ~sidI, ~didI, ~ephI, <xrI, yrI>, ~iNI, rNI ),
+     Resp_Finish_Compare( ~sidR, ~didR, ~ephR, <xiR, yiR>, ~rNR, iNR )
+     ]
+    variants (modulo AC)
+    1. ~ephI = ~ephI.17
+       ~ephR = ~ephR.17
+       ~iNI  = ~iNI.17
+       ~rNR  = ~rNR.17
+       iNR   = iNR.17
+       rNI   = rNI.17
+       xiR   = xiR.17
+       xrI   = xrI.17
+       z     = h(<g2, element('C', DH_neutral, 'g'^~ephI.17), xrI.17, ~iNI.17, 
+                  rNI.17>)
+       z.1   = h(<g2, xiR.17, element('C', DH_neutral, 'g'^~ephR.17), iNR.17, 
+                  ~rNR.17>)
+    
+    2. ~ephI = ~x.17
+       ~ephR = ~x.18
+       ~iNI  = ~x.19
+       ~rNR  = ~x.20
+       iNR   = get_nonceI(x.23, x.24, element('C', DH_neutral, 'g'^~x.18),
+                          ~x.20)
+       rNI   = get_nonceR(x.25, element('C', DH_neutral, 'g'^~x.17), x.26,
+                          ~x.19)
+       xiR   = x.24
+       xrI   = x.26
+       z     = x.25
+       z.1   = x.23
+    
+    3. ~ephI = ~x.17
+       ~ephR = ~ephR.26
+       ~iNI  = ~x.19
+       ~rNR  = ~rNR.26
+       iNR   = iNR.26
+       rNI   = get_nonceR(x.24, element('C', DH_neutral, 'g'^~x.17), x.25,
+                          ~x.19)
+       xiR   = xiR.26
+       xrI   = x.25
+       z     = x.24
+       z.1   = h(<g2, xiR.26, element('C', DH_neutral, 'g'^~ephR.26), iNR.26, 
+                  ~rNR.26>)
+    
+    4. ~ephI = ~ephI.24
+       ~ephR = ~x.17
+       ~iNI  = ~iNI.24
+       ~rNR  = ~x.19
+       iNR   = get_nonceI(x.22, x.23, element('C', DH_neutral, 'g'^~x.17),
+                          ~x.19)
+       rNI   = rNI.24
+       xiR   = x.23
+       xrI   = xrI.24
+       z     = h(<g2, element('C', DH_neutral, 'g'^~ephI.24), xrI.24, ~iNI.24, 
+                  rNI.24>)
+       z.1   = x.22
+  */
+
+rule (modulo E) Init_Begin_Derive_Normal:
+   [
+   Init_Finish_Compare( ~sid, ~did, ~eph, <element('C', DH_neutral, n), y>,
+                        ~iN, rN
+   ),
+   !Init_Intended( ~sid, ~idR, ~capR ), !Device( ~did, ~idI, ~capI ),
+   In( r )
+   ]
+  --[
+  Eq( element('C', DH_neutral, n), y ), Raised( 'C', DH_neutral, r, ~eph ),
+  Almost_Finish_I( ~sid, ~did,
+                   <element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph)>,
+                   <element('C', DH_neutral, n), y>, ~iN, rN, ~idR, ~capR,
+                   h(<'f5', 'mackey', <element('C', r, n^~eph), element('C', r, n^~eph)>, 
+                      ~iN, rN, ~idI, ~idR>),
+                   h(<'f5', 'ltk', <element('C', r, n^~eph), element('C', r, n^~eph)>, ~iN, 
+                      rN, ~idI, ~idR>)
+  ),
+  Almost_Finish_I_Nonces( ~idI, ~idR, ~iN, rN ),
+  Almost_Finish_I_Keys( ~idI, ~idR,
+                        h(<'f5', 'ltk', <element('C', r, n^~eph), element('C', r, n^~eph)>, ~iN, 
+                           rN, ~idI, ~idR>)
+  )
+  ]->
+   [
+   Out( h(<
+           h(<'f5', 'mackey', <element('C', r, n^~eph), element('C', r, n^~eph)>, 
+              ~iN, rN, ~idI, ~idR>), 
+           ~iN, rN, '0', ~capI, ~idI, ~idR>)
+   ),
+   Init_Begin_Derive( ~sid, ~did, ~eph, <element('C', DH_neutral, n), y>,
+                      ~iN, rN,
+                      h(<'f5', 'mackey', <element('C', r, n^~eph), element('C', r, n^~eph)>, 
+                         ~iN, rN, ~idI, ~idR>),
+                      h(<'f5', 'ltk', <element('C', r, n^~eph), element('C', r, n^~eph)>, ~iN, 
+                         rN, ~idI, ~idR>)
+   )
+   ]
+
+  /*
+  rule (modulo AC) Init_Begin_Derive_Normal:
+     [
+     Init_Finish_Compare( ~sid, ~did, ~eph, <element('C', DH_neutral, n), y>,
+                          ~iN, rN
+     ),
+     !Init_Intended( ~sid, ~idR, ~capR ), !Device( ~did, ~idI, ~capI ),
+     In( r )
+     ]
+    --[
+    Eq( element('C', DH_neutral, n), y ), Raised( 'C', DH_neutral, r, ~eph ),
+    Almost_Finish_I( ~sid, ~did,
+                     <element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph)>,
+                     <element('C', DH_neutral, n), y>, ~iN, rN, ~idR, ~capR,
+                     h(<'f5', 'mackey', <element('C', r, x), element('C', r, x)>, ~iN, rN, 
+                        ~idI, ~idR>),
+                     h(<'f5', 'ltk', <element('C', r, x), element('C', r, x)>, ~iN, rN, ~idI, 
+                        ~idR>)
+    ),
+    Almost_Finish_I_Nonces( ~idI, ~idR, ~iN, rN ),
+    Almost_Finish_I_Keys( ~idI, ~idR,
+                          h(<'f5', 'ltk', <element('C', r, x), element('C', r, x)>, ~iN, rN, ~idI, 
+                             ~idR>)
+    )
+    ]->
+     [
+     Out( h(<
+             h(<'f5', 'mackey', <element('C', r, x), element('C', r, x)>, ~iN, rN, 
+                ~idI, ~idR>), 
+             ~iN, rN, '0', ~capI, ~idI, ~idR>)
+     ),
+     Init_Begin_Derive( ~sid, ~did, ~eph, <element('C', DH_neutral, n), y>,
+                        ~iN, rN,
+                        h(<'f5', 'mackey', <element('C', r, x), element('C', r, x)>, ~iN, rN, 
+                           ~idI, ~idR>),
+                        h(<'f5', 'ltk', <element('C', r, x), element('C', r, x)>, ~iN, rN, ~idI, 
+                           ~idR>)
+     )
+     ]
+    variants (modulo AC)
+    1. ~eph  = ~eph.84
+       n     = n.89
+       x     = n.89^~eph.84
+    
+    2. ~eph  = ~eph.135
+       n     = x.191^inv(~eph.135)
+       x     = x.191
+    
+    3. ~eph  = ~eph.3561
+       n     = x.7116^x.7117
+       x     = x.7116^(~eph.3561*x.7117)
+    
+    4. ~eph  = ~eph.3566
+       n     = x.7126^inv((~eph.3566*x.7127))
+       x     = x.7126^inv(x.7127)
+    
+    5. ~eph  = ~eph.3566
+       n     = x.7126^(x.7127*inv(~eph.3566))
+       x     = x.7126^x.7127
+    
+    6. ~eph  = ~eph.3567
+       n     = x.7127^(x.7128*inv((~eph.3567*x.7129)))
+       x     = x.7127^(x.7128*inv(x.7129))
+    
+    7. n     = DH_neutral
+       x     = DH_neutral
+  */
+
+rule (modulo E) Resp_Derive_Normal:
+   [
+   Resp_Finish_Compare( ~sid, ~did, ~eph, <element('C', DH_neutral, n), y>,
+                        ~rN, iN
+   ),
+   !Resp_Intended( ~sid, ~idI, ~capI ), !Device( ~did, ~idR, ~capR ),
+   In( EI ), In( r )
+   ]
+  --[
+  Eq( EI,
+      h(<
+         h(<'f5', 'mackey', <element('C', r, n^~eph), element('C', r, n^~eph)>, 
+            iN, ~rN, ~idI, ~idR>), 
+         iN, ~rN, '0', ~capI, ~idI, ~idR>)
+  ),
+  Eq( element('C', DH_neutral, n), y ), Raised( 'C', DH_neutral, r, ~eph ),
+  Finished_R( ~sid, ~did, <element('C', DH_neutral, n), y>,
+              <element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph)>,
+              iN, ~rN, ~idI, ~capI,
+              h(<'f5', 'mackey', <element('C', r, n^~eph), element('C', r, n^~eph)>, 
+                 iN, ~rN, ~idI, ~idR>),
+              h(<'f5', 'ltk', <element('C', r, n^~eph), element('C', r, n^~eph)>, iN, 
+                 ~rN, ~idI, ~idR>)
+  ),
+  Finished_R_Nonces( ~idI, ~idR, iN, ~rN ),
+  Finished_R_Keys( ~idI, ~idR,
+                   h(<'f5', 'ltk', <element('C', r, n^~eph), element('C', r, n^~eph)>, iN, 
+                      ~rN, ~idI, ~idR>)
+  )
+  ]->
+   [
+   Out( h(<'f6', 
+           h(<'f5', 'mackey', <element('C', r, n^~eph), element('C', r, n^~eph)>, 
+              iN, ~rN, ~idI, ~idR>), 
+           ~rN, iN, '0', ~capR, ~idR, ~idI>)
+   )
+   ]
+
+  /*
+  rule (modulo AC) Resp_Derive_Normal:
+     [
+     Resp_Finish_Compare( ~sid, ~did, ~eph, <element('C', DH_neutral, n), y>,
+                          ~rN, iN
+     ),
+     !Resp_Intended( ~sid, ~idI, ~capI ), !Device( ~did, ~idR, ~capR ),
+     In( EI ), In( r )
+     ]
+    --[
+    Eq( EI,
+        h(<
+           h(<'f5', 'mackey', <element('C', r, x), element('C', r, x)>, iN, ~rN, 
+              ~idI, ~idR>), 
+           iN, ~rN, '0', ~capI, ~idI, ~idR>)
+    ),
+    Eq( element('C', DH_neutral, n), y ), Raised( 'C', DH_neutral, r, ~eph ),
+    Finished_R( ~sid, ~did, <element('C', DH_neutral, n), y>,
+                <element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph)>,
+                iN, ~rN, ~idI, ~capI,
+                h(<'f5', 'mackey', <element('C', r, x), element('C', r, x)>, iN, ~rN, 
+                   ~idI, ~idR>),
+                h(<'f5', 'ltk', <element('C', r, x), element('C', r, x)>, iN, ~rN, ~idI, 
+                   ~idR>)
+    ),
+    Finished_R_Nonces( ~idI, ~idR, iN, ~rN ),
+    Finished_R_Keys( ~idI, ~idR,
+                     h(<'f5', 'ltk', <element('C', r, x), element('C', r, x)>, iN, ~rN, ~idI, 
+                        ~idR>)
+    )
+    ]->
+     [
+     Out( h(<'f6', 
+             h(<'f5', 'mackey', <element('C', r, x), element('C', r, x)>, iN, ~rN, 
+                ~idI, ~idR>), 
+             ~rN, iN, '0', ~capR, ~idR, ~idI>)
+     )
+     ]
+    variants (modulo AC)
+    1. ~eph  = ~eph.105
+       n     = n.112
+       x     = n.112^~eph.105
+    
+    2. ~eph  = ~eph.167
+       n     = x.236^inv(~eph.167)
+       x     = x.236
+    
+    3. ~eph  = ~eph.5549
+       n     = x.11092^x.11093
+       x     = x.11092^(~eph.5549*x.11093)
+    
+    4. ~eph  = ~eph.5556
+       n     = x.11106^inv((~eph.5556*x.11107))
+       x     = x.11106^inv(x.11107)
+    
+    5. ~eph  = ~eph.5556
+       n     = x.11106^(x.11107*inv(~eph.5556))
+       x     = x.11106^x.11107
+    
+    6. ~eph  = ~eph.5557
+       n     = x.11107^(x.11108*inv((~eph.5557*x.11109)))
+       x     = x.11107^(x.11108*inv(x.11109))
+    
+    7. n     = DH_neutral
+       x     = DH_neutral
+  */
+
+rule (modulo E) Init_Finish_Derive:
+   [
+   Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk ),
+   !Init_Intended( ~sid, ~idR, ~capR ), !Device( ~did, ~idI, ~capI ),
+   In( ER )
+   ]
+  --[
+  Eq( h(<'f6', mackey, rN, ~iN, '0', ~capR, ~idR, ~idI>), ER ),
+  Finished_I( ~sid, ~did,
+              <element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph)>,
+              rPk, ~iN, rN, ~idR, ~capR, mackey, ltk
+  ),
+  Finished_I_Nonces( ~idI, ~idR, ~iN, rN ),
+  Finished_I_Keys( ~idI, ~idR, ltk )
+  ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+restriction Equality:
+  "∀ x y #i. (Eq( x, y ) @ #i) ⇒ (x = y)"
+  // safety formula
+
+restriction InEquality:
+  "∀ x #i. (InEq( x, x ) @ #i) ⇒ (⊥)"
+  // safety formula
+
+lemma weak_functional:
+  exists-trace
+  "∃ #i #j sidI sidR didI didR iPk1 iPk2 rPk1 rPk2 iN rN a1 a2 a3 a4
+     mackey1 mackey2 ltk1 ltk2.
+    (Finished_I( sidI, didI, iPk1, rPk1, iN, rN, a1, a2, mackey1, ltk1
+     ) @ #i) ∧
+    (Finished_R( sidR, didR, iPk2, rPk2, iN, rN, a3, a4, mackey2, ltk2
+     ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ #i #j sidI sidR didI didR iPk1 iPk2 rPk1 rPk2 iN rN a1 a2 a3 a4
+   mackey1 mackey2 ltk1 ltk2.
+  (Finished_I( sidI, didI, iPk1, rPk1, iN, rN, a1, a2, mackey1, ltk1
+   ) @ #i) ∧
+  (Finished_R( sidR, didR, iPk2, rPk2, iN, rN, a3, a4, mackey2, ltk2
+   ) @ #j)"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk1, ~iN, ~rN, mackey1, ltk1
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( Resp_Finish_Compare( ~sid.1, ~did.1, ~eph.1,
+                                  <element('C', DH_neutral, n.1), element('C', DH_neutral, n.1)>, ~rN, ~iN
+             ) ▶₀ #j )
+        case Compare_Digits
+        solve( !Resp_Intended( ~sid.1, ~idI.1, ~capI.1 ) ▶₁ #j )
+          case Resp_DH_Exchange
+          solve( !Device( ~did.1, ~idR.1, ~capR.1 ) ▶₂ #j )
+            case Create_Device
+            solve( splitEqs(2) )
+              case split_case_1
+              solve( !KU( h(<'f6', 
+                             h(<'f5', 'mackey', 
+                                <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                                 element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                                ~iNI, ~rN, ~idI, ~idR>), 
+                             ~rN, ~iNI, '0', ~capR, ~idR, ~idI>)
+                     ) @ #vk )
+                case Resp_Derive_Normal
+                solve( !KU( ~rN ) @ #vk.3 )
+                  case Resp_Finish_Auth
+                  solve( !KU( ~idI ) @ #vk.10 )
+                    case Create_Device
+                    solve( !KU( ~capI ) @ #vk.11 )
+                      case Create_Device
+                      solve( !KU( ~iNI ) @ #vk.7 )
+                        case Init_Begin_Auth
+                        solve( !KU( h(<
+                                       h(<'f5', 'mackey', 
+                                          <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                                           element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                                          ~iNI, ~rN, ~idI, ~idR>), 
+                                       ~iNI, ~rN, '0', ~capI, ~idI, ~idR>)
+                               ) @ #vk.6 )
+                          case Init_Begin_Derive_Normal
+                          solve( !KU( h(<'Cb', element('C', DH_neutral, 'g'^~eph), 
+                                         element('C', DH_neutral, 'g'^~ephI), ~rN, '0'>)
+                                 ) @ #vk.8 )
+                            case Resp_Begin_Auth
+                            solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.10 )
+                              case Resp_DH_Exchange_case_1
+                              solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.12 )
+                                case Init_Begin_DH_Exchange_case_1
+                                SOLVED // trace found
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma functional:
+  exists-trace
+  "∃ #i #j sidI sidR didI didR iPk rPk iN rN a1 a2 a3 a4 mackey ltk.
+    (Finished_I( sidI, didI, iPk, rPk, iN, rN, a1, a2, mackey, ltk ) @ #i) ∧
+    (Finished_R( sidR, didR, iPk, rPk, iN, rN, a3, a4, mackey, ltk ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ #i #j sidI sidR didI didR iPk rPk iN rN a1 a2 a3 a4 mackey ltk.
+  (Finished_I( sidI, didI, iPk, rPk, iN, rN, a1, a2, mackey, ltk ) @ #i) ∧
+  (Finished_R( sidR, didR, iPk, rPk, iN, rN, a3, a4, mackey, ltk ) @ #j)"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph,
+                          <element('C', DH_neutral, 'g'^~eph.1), 
+                           element('C', DH_neutral, 'g'^~eph.1)>,
+                          ~iN, ~rN,
+                          h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~eph.1)), 
+                              element('C', DH_neutral, 'g'^(~eph*~eph.1))>, 
+                             ~iN, ~rN, ~idI, ~idR>),
+                          h(<'f5', 'ltk', 
+                             <element('C', DH_neutral, 'g'^(~eph*~eph.1)), 
+                              element('C', DH_neutral, 'g'^(~eph*~eph.1))>, 
+                             ~iN, ~rN, ~idI, ~idR>)
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( Resp_Finish_Compare( ~sid.1, ~did.1, ~eph.1,
+                                  <element('C', DH_neutral, 'g'^~eph), element('C', DH_neutral, 'g'^~eph)>,
+                                  ~rN, ~iN
+             ) ▶₀ #j )
+        case Compare_Digits
+        solve( !Resp_Intended( ~sid.1, ~idI, ~capI.1 ) ▶₁ #j )
+          case Resp_DH_Exchange
+          solve( !Device( ~did.1, ~idR, ~capR.1 ) ▶₂ #j )
+            case Create_Device
+            solve( splitEqs(2) )
+              case split_case_1
+              solve( !KU( ~rN ) @ #vk.3 )
+                case Resp_Finish_Auth
+                solve( !KU( ~idI ) @ #vk.10 )
+                  case Create_Device
+                  solve( !KU( ~capI ) @ #vk.11 )
+                    case Create_Device
+                    solve( !KU( ~iNI ) @ #vk.7 )
+                      case Init_Begin_Auth
+                      solve( !KU( h(<'f6', 
+                                     h(<'f5', 'mackey', 
+                                        <element('C', DH_neutral, 'g'^(~ephI*~ephR)), 
+                                         element('C', DH_neutral, 'g'^(~ephI*~ephR))>, 
+                                        ~iNI, ~rN, ~idI, ~idR>), 
+                                     ~rN, ~iNI, '0', ~capR, ~idR, ~idI>)
+                             ) @ #vk.5 )
+                        case Resp_Derive_Normal
+                        solve( !KU( h(<
+                                       h(<'f5', 'mackey', 
+                                          <element('C', DH_neutral, 'g'^(~ephI*~ephR)), 
+                                           element('C', DH_neutral, 'g'^(~ephI*~ephR))>, 
+                                          ~iNI, ~rN, ~idI, ~idR>), 
+                                       ~iNI, ~rN, '0', ~capI, ~idI, ~idR>)
+                               ) @ #vk.6 )
+                          case Init_Begin_Derive_Normal
+                          solve( !KU( h(<'Cb', element('C', DH_neutral, 'g'^~ephR), 
+                                         element('C', DH_neutral, 'g'^~ephI), ~rN, '0'>)
+                                 ) @ #vk.8 )
+                            case Resp_Begin_Auth
+                            solve( !KU( element('C', DH_neutral, 'g'^~ephR) ) @ #vk.10 )
+                              case Resp_DH_Exchange_case_1
+                              solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.12 )
+                                case Init_Begin_DH_Exchange_case_1
+                                SOLVED // trace found
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_init:
+  all-traces
+  "∀ #i idI idR iN rN.
+    (Finished_I_Nonces( idI, idR, iN, rN ) @ #i) ⇒
+    (∃ #j. (Finished_R_Nonces( idI, idR, iN, rN ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR iN rN.
+  (Finished_I_Nonces( idI, idR, iN, rN ) @ #i)
+ ∧
+  ∀ #j. (Finished_R_Nonces( idI, idR, iN, rN ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<'f6', 
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                        ~idI, ~idR>), 
+                     rN, ~iN, '0', ~capR, ~idR, ~idI>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', element('C', DH_neutral, n), 
+                       element('C', DH_neutral, 'g'^~eph), rN, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephR)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephR))>, 
+                             ~iN, ~rN, ~idI, ~idR>)
+                     ) @ #vk.18 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephR)) ) @ #vk.35 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephR) ) @ #vk.37 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI.1 ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI.1 ) @ #vk.23 )
+                        case Create_Device
+                        solve( !KU( ~iN ) @ #vk.20 )
+                          case Init_Begin_Auth
+                          solve( !KU( ~capR ) @ #vk.30 )
+                            case Create_Device
+                            solve( !KU( ~idR ) @ #vk.32 )
+                              case Create_Device
+                              solve( !KU( ~idI ) @ #vk.34 )
+                                case Create_Device
+                                solve( !KU( ~eph ) @ #vk.38 )
+                                  case GenRandom0
+                                  solve( !KU( element('C', DH_neutral, 'g'^~ephR) ) @ #vk.26 )
+                                    case Resp_DH_Exchange
+                                    solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.32 )
+                                      case Init_Begin_DH_Exchange_case_1
+                                      SOLVED // trace found
+                                    qed
+                                  qed
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_resp:
+  all-traces
+  "∀ #i idI idR iN rN.
+    (Finished_R_Nonces( idI, idR, iN, rN ) @ #i) ⇒
+    (∃ #j. (Almost_Finish_I_Nonces( idI, idR, iN, rN ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR iN rN.
+  (Finished_R_Nonces( idI, idR, iN, rN ) @ #i)
+ ∧
+  ∀ #j. (Almost_Finish_I_Nonces( idI, idR, iN, rN ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                            <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+       ) ▶₀ #i )
+  case Compare_Digits
+  solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+    case Resp_DH_Exchange
+    solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, iN, ~rN, 
+                        ~idI, ~idR>), 
+                     iN, ~rN, '0', ~capI, ~idI, ~idR>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', xrI, element('C', DH_neutral, 'g'^~ephI), rNI, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN.1 ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                             ~iNI, ~rN, ~idI, ~idR>)
+                     ) @ #vk.19 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephI)) ) @ #vk.30 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephI) ) @ #vk.32 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI ) @ #vk.26 )
+                        case Create_Device
+                        solve( !KU( ~idR ) @ #vk.29 )
+                          case Create_Device
+                          solve( !KU( ~iNI ) @ #vk.23 )
+                            case Init_Begin_Auth
+                            solve( !KU( ~ephI ) @ #vk.33 )
+                              case GenRandom0
+                              solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.29 )
+                                case Init_Begin_DH_Exchange_case_1
+                                solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.22 )
+                                  case Resp_DH_Exchange
+                                  SOLVED // trace found
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma inj_agree_init:
+  all-traces
+  "∀ #i idI idR iN rN.
+    (Finished_I_Nonces( idI, idR, iN, rN ) @ #i) ⇒
+    (∃ #j.
+      ((Finished_R_Nonces( idI, idR, iN, rN ) @ #j) ∧ (#j < #i)) ∧
+      (¬(∃ idI2 idR2 #i2.
+          (Finished_I_Nonces( idI2, idR2, iN, rN ) @ #i2) ∧ (¬(#i = #i2)))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR iN rN.
+  (Finished_I_Nonces( idI, idR, iN, rN ) @ #i)
+ ∧
+  ∀ #j.
+   (Finished_R_Nonces( idI, idR, iN, rN ) @ #j)
+  ⇒
+   ((¬(#j < #i)) ∨
+    (∃ idI2 idR2 #i2.
+      (Finished_I_Nonces( idI2, idR2, iN, rN ) @ #i2) ∧ ¬(#i = #i2)))"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<'f6', 
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                        ~idI, ~idR>), 
+                     rN, ~iN, '0', ~capR, ~idR, ~idI>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', element('C', DH_neutral, n), 
+                       element('C', DH_neutral, 'g'^~eph), rN, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephR)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephR))>, 
+                             ~iN, ~rN, ~idI, ~idR>)
+                     ) @ #vk.18 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephR)) ) @ #vk.35 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephR) ) @ #vk.37 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI.1 ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI.1 ) @ #vk.23 )
+                        case Create_Device
+                        solve( !KU( ~iN ) @ #vk.20 )
+                          case Init_Begin_Auth
+                          solve( !KU( ~capR ) @ #vk.30 )
+                            case Create_Device
+                            solve( !KU( ~idR ) @ #vk.32 )
+                              case Create_Device
+                              solve( !KU( ~idI ) @ #vk.34 )
+                                case Create_Device
+                                solve( !KU( ~eph ) @ #vk.38 )
+                                  case GenRandom0
+                                  solve( !KU( element('C', DH_neutral, 'g'^~ephR) ) @ #vk.26 )
+                                    case Resp_DH_Exchange
+                                    solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.32 )
+                                      case Init_Begin_DH_Exchange_case_1
+                                      SOLVED // trace found
+                                    qed
+                                  qed
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma inj_agree_resp:
+  all-traces
+  "∀ #i idI idR iN rN.
+    (Finished_R_Nonces( idI, idR, iN, rN ) @ #i) ⇒
+    (∃ #j.
+      ((Almost_Finish_I_Nonces( idI, idR, iN, rN ) @ #j) ∧ (#j < #i)) ∧
+      (¬(∃ idI2 idR2 #i2.
+          (Finished_R_Nonces( idI2, idR2, iN, rN ) @ #i2) ∧ (¬(#i = #i2)))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR iN rN.
+  (Finished_R_Nonces( idI, idR, iN, rN ) @ #i)
+ ∧
+  ∀ #j.
+   (Almost_Finish_I_Nonces( idI, idR, iN, rN ) @ #j)
+  ⇒
+   ((¬(#j < #i)) ∨
+    (∃ idI2 idR2 #i2.
+      (Finished_R_Nonces( idI2, idR2, iN, rN ) @ #i2) ∧ ¬(#i = #i2)))"
+*/
+simplify
+solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                            <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+       ) ▶₀ #i )
+  case Compare_Digits
+  solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+    case Resp_DH_Exchange
+    solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, iN, ~rN, 
+                        ~idI, ~idR>), 
+                     iN, ~rN, '0', ~capI, ~idI, ~idR>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', xrI, element('C', DH_neutral, 'g'^~ephI), rNI, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN.1 ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                             ~iNI, ~rN, ~idI, ~idR>)
+                     ) @ #vk.19 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephI)) ) @ #vk.30 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephI) ) @ #vk.32 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI ) @ #vk.26 )
+                        case Create_Device
+                        solve( !KU( ~idR ) @ #vk.29 )
+                          case Create_Device
+                          solve( !KU( ~iNI ) @ #vk.23 )
+                            case Init_Begin_Auth
+                            solve( !KU( ~ephI ) @ #vk.33 )
+                              case GenRandom0
+                              solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.29 )
+                                case Init_Begin_DH_Exchange_case_1
+                                solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.22 )
+                                  case Resp_DH_Exchange
+                                  SOLVED // trace found
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_init_keys:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_I_Keys( idI, idR, ltk ) @ #i) ⇒
+    (∃ #j. (Finished_R_Keys( idI, idR, ltk ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_I_Keys( idI, idR, ltk ) @ #i)
+ ∧
+  ∀ #j. (Finished_R_Keys( idI, idR, ltk ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<'f6', 
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                        ~idI, ~idR>), 
+                     rN, ~iN, '0', ~capR, ~idR, ~idI>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', element('C', DH_neutral, n), 
+                       element('C', DH_neutral, 'g'^~eph), rN, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephR)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephR))>, 
+                             ~iN, ~rN, ~idI, ~idR>)
+                     ) @ #vk.18 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephR)) ) @ #vk.35 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephR) ) @ #vk.37 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI.1 ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI.1 ) @ #vk.23 )
+                        case Create_Device
+                        solve( !KU( ~iN ) @ #vk.20 )
+                          case Init_Begin_Auth
+                          solve( !KU( ~capR ) @ #vk.30 )
+                            case Create_Device
+                            solve( !KU( ~idR ) @ #vk.32 )
+                              case Create_Device
+                              solve( !KU( ~idI ) @ #vk.34 )
+                                case Create_Device
+                                solve( !KU( ~eph ) @ #vk.38 )
+                                  case GenRandom0
+                                  solve( !KU( element('C', DH_neutral, 'g'^~ephR) ) @ #vk.26 )
+                                    case Resp_DH_Exchange
+                                    solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.32 )
+                                      case Init_Begin_DH_Exchange_case_1
+                                      SOLVED // trace found
+                                    qed
+                                  qed
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_resp_keys:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_R_Keys( idI, idR, ltk ) @ #i) ⇒
+    (∃ #j. (Almost_Finish_I_Keys( idI, idR, ltk ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_R_Keys( idI, idR, ltk ) @ #i)
+ ∧
+  ∀ #j. (Almost_Finish_I_Keys( idI, idR, ltk ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                            <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+       ) ▶₀ #i )
+  case Compare_Digits
+  solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+    case Resp_DH_Exchange
+    solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, iN, ~rN, 
+                        ~idI, ~idR>), 
+                     iN, ~rN, '0', ~capI, ~idI, ~idR>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', xrI, element('C', DH_neutral, 'g'^~ephI), rNI, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN.1 ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                             ~iNI, ~rN, ~idI, ~idR>)
+                     ) @ #vk.19 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephI)) ) @ #vk.30 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephI) ) @ #vk.32 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI ) @ #vk.26 )
+                        case Create_Device
+                        solve( !KU( ~idR ) @ #vk.29 )
+                          case Create_Device
+                          solve( !KU( ~iNI ) @ #vk.23 )
+                            case Init_Begin_Auth
+                            solve( !KU( ~ephI ) @ #vk.33 )
+                              case GenRandom0
+                              solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.29 )
+                                case Init_Begin_DH_Exchange_case_1
+                                solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.22 )
+                                  case Resp_DH_Exchange
+                                  SOLVED // trace found
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma inj_agree_init_keys:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_I_Keys( idI, idR, ltk ) @ #i) ⇒
+    (∃ #j.
+      ((Finished_R_Keys( idI, idR, ltk ) @ #j) ∧ (#j < #i)) ∧
+      (¬(∃ idI2 idR2 #i2.
+          (Finished_I_Keys( idI2, idR2, ltk ) @ #i2) ∧ (¬(#i = #i2)))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_I_Keys( idI, idR, ltk ) @ #i)
+ ∧
+  ∀ #j.
+   (Finished_R_Keys( idI, idR, ltk ) @ #j)
+  ⇒
+   ((¬(#j < #i)) ∨
+    (∃ idI2 idR2 #i2.
+      (Finished_I_Keys( idI2, idR2, ltk ) @ #i2) ∧ ¬(#i = #i2)))"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<'f6', 
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                        ~idI, ~idR>), 
+                     rN, ~iN, '0', ~capR, ~idR, ~idI>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', element('C', DH_neutral, n), 
+                       element('C', DH_neutral, 'g'^~eph), rN, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephR)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephR))>, 
+                             ~iN, ~rN, ~idI, ~idR>)
+                     ) @ #vk.18 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephR)) ) @ #vk.35 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephR) ) @ #vk.37 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI.1 ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI.1 ) @ #vk.23 )
+                        case Create_Device
+                        solve( !KU( ~iN ) @ #vk.20 )
+                          case Init_Begin_Auth
+                          solve( !KU( ~capR ) @ #vk.30 )
+                            case Create_Device
+                            solve( !KU( ~idR ) @ #vk.32 )
+                              case Create_Device
+                              solve( !KU( ~idI ) @ #vk.34 )
+                                case Create_Device
+                                solve( !KU( ~eph ) @ #vk.38 )
+                                  case GenRandom0
+                                  solve( !KU( element('C', DH_neutral, 'g'^~ephR) ) @ #vk.26 )
+                                    case Resp_DH_Exchange
+                                    solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.32 )
+                                      case Init_Begin_DH_Exchange_case_1
+                                      SOLVED // trace found
+                                    qed
+                                  qed
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma inj_agree_resp_keys:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_R_Keys( idI, idR, ltk ) @ #i) ⇒
+    (∃ #j.
+      ((Almost_Finish_I_Keys( idI, idR, ltk ) @ #j) ∧ (#j < #i)) ∧
+      (¬(∃ idI2 idR2 #i2.
+          (Finished_R_Keys( idI2, idR2, ltk ) @ #i2) ∧ (¬(#i = #i2)))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_R_Keys( idI, idR, ltk ) @ #i)
+ ∧
+  ∀ #j.
+   (Almost_Finish_I_Keys( idI, idR, ltk ) @ #j)
+  ⇒
+   ((¬(#j < #i)) ∨
+    (∃ idI2 idR2 #i2.
+      (Finished_R_Keys( idI2, idR2, ltk ) @ #i2) ∧ ¬(#i = #i2)))"
+*/
+simplify
+solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                            <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+       ) ▶₀ #i )
+  case Compare_Digits
+  solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+    case Resp_DH_Exchange
+    solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, iN, ~rN, 
+                        ~idI, ~idR>), 
+                     iN, ~rN, '0', ~capI, ~idI, ~idR>)
+             ) @ #vk )
+        case c_h
+        solve( !KU( h(<'Cb', xrI, element('C', DH_neutral, 'g'^~ephI), rNI, '0'>)
+               ) @ #vk.5 )
+          case Resp_Begin_Auth
+          solve( !KU( ~rN.1 ) @ #vk.3 )
+            case Resp_Finish_Auth
+            solve( splitEqs(1) )
+              case split_case_1
+              solve( !KU( h(<'f5', 'mackey', 
+                             <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                              element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                             ~iNI, ~rN, ~idI, ~idR>)
+                     ) @ #vk.19 )
+                case c_h
+                solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephI)) ) @ #vk.30 )
+                  case c_element
+                  solve( !KU( 'g'^(~eph*~ephI) ) @ #vk.32 )
+                    case Resp_DH_Exchange_case_1
+                    solve( !KU( ~idI ) @ #vk.21 )
+                      case Create_Device
+                      solve( !KU( ~capI ) @ #vk.26 )
+                        case Create_Device
+                        solve( !KU( ~idR ) @ #vk.29 )
+                          case Create_Device
+                          solve( !KU( ~iNI ) @ #vk.23 )
+                            case Init_Begin_Auth
+                            solve( !KU( ~ephI ) @ #vk.33 )
+                              case GenRandom0
+                              solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.29 )
+                                case Init_Begin_DH_Exchange_case_1
+                                solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.22 )
+                                  case Resp_DH_Exchange
+                                  SOLVED // trace found
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma key_secrecy_init:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_I_Keys( idI, idR, ltk ) @ #i) ⇒ (¬(∃ #k. K( ltk ) @ #k))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_I_Keys( idI, idR, ltk ) @ #i) ∧ ∃ #k. (K( ltk ) @ #k)"
+*/
+simplify
+solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+       ) ▶₀ #i )
+  case Init_Begin_Derive_Normal
+  solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+    case Init_Begin_DH_Exchange
+    solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<'f6', 
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                        ~idI, ~idR>), 
+                     rN, ~iN, '0', ~capR, ~idR, ~idI>)
+             ) @ #vk )
+        case Resp_Derive_Normal
+        solve( splitEqs(1) )
+          case split_case_1
+          solve( !KU( h(<'f5', 'ltk', 
+                         <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                          element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                         ~iNI, ~rN, ~idI, ~idR>)
+                 ) @ #vk.1 )
+            case c_h
+            solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephI)) ) @ #vk.23 )
+              case c_element
+              solve( !KU( 'g'^(~eph*~ephI) ) @ #vk.26 )
+                case Resp_DH_Exchange_case_1
+                solve( !KU( ~idI ) @ #vk.17 )
+                  case Create_Device
+                  solve( !KU( ~capI ) @ #vk.20 )
+                    case Create_Device
+                    solve( !KU( ~iNI ) @ #vk.17 )
+                      case Init_Begin_Auth
+                      solve( !KU( ~rN ) @ #vk.16 )
+                        case Resp_Finish_Auth
+                        solve( !KU( ~idR ) @ #vk.25 )
+                          case Create_Device
+                          solve( !KU( ~ephI ) @ #vk.27 )
+                            case GenRandom0
+                            solve( !KU( h(<'Cb', element('C', DH_neutral, 'g'^~eph), 
+                                           element('C', DH_neutral, 'g'^~ephI), ~rN, '0'>)
+                                   ) @ #vk.21 )
+                              case Resp_Begin_Auth
+                              solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.19 )
+                                case Resp_DH_Exchange
+                                solve( !KU( h(<
+                                               h(<'f5', 'mackey', 
+                                                  <element('C', DH_neutral, 'g'^(~eph*~ephI)), 
+                                                   element('C', DH_neutral, 'g'^(~eph*~ephI))>, 
+                                                  ~iNI, ~rN, ~idI, ~idR>), 
+                                               ~iNI, ~rN, '0', ~capI, ~idI, ~idR>)
+                                       ) @ #vk.24 )
+                                  case Init_Begin_Derive_Normal
+                                  solve( !KU( element('C', DH_neutral, 'g'^~ephI) ) @ #vk.24 )
+                                    case Init_Begin_DH_Exchange_case_1
+                                    SOLVED // trace found
+                                  qed
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma key_secrecy_resp:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_R_Keys( idI, idR, ltk ) @ #i) ⇒ (¬(∃ #k. K( ltk ) @ #k))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_R_Keys( idI, idR, ltk ) @ #i) ∧ ∃ #k. (K( ltk ) @ #k)"
+*/
+simplify
+solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                            <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+       ) ▶₀ #i )
+  case Compare_Digits
+  solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+    case Resp_DH_Exchange
+    solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+      case Create_Device
+      solve( !KU( h(<
+                     h(<'f5', 'mackey', 
+                        <element('C', DH_neutral, x), element('C', DH_neutral, x)>, iN, ~rN, 
+                        ~idI, ~idR>), 
+                     iN, ~rN, '0', ~capI, ~idI, ~idR>)
+             ) @ #vk )
+        case Init_Begin_Derive_Normal
+        solve( splitEqs(1) )
+          case split_case_1
+          solve( !KU( h(<'f5', 'ltk', 
+                         <element('C', DH_neutral, 'g'^(~eph*~ephR)), 
+                          element('C', DH_neutral, 'g'^(~eph*~ephR))>, 
+                         ~iN, ~rNR, ~idI, ~idR>)
+                 ) @ #vk.2 )
+            case c_h
+            solve( !KU( element('C', DH_neutral, 'g'^(~eph*~ephR)) ) @ #vk.22 )
+              case c_element
+              solve( !KU( 'g'^(~eph*~ephR) ) @ #vk.25 )
+                case Resp_DH_Exchange_case_1
+                solve( !KU( ~idI ) @ #vk.17 )
+                  case Create_Device
+                  solve( !KU( ~capI ) @ #vk.20 )
+                    case Create_Device
+                    solve( !KU( ~rNR ) @ #vk.13 )
+                      case Resp_Finish_Auth
+                      solve( !KU( ~iN ) @ #vk.18 )
+                        case Init_Begin_Auth
+                        solve( !KU( ~idR ) @ #vk.24 )
+                          case Create_Device
+                          solve( !KU( ~eph ) @ #vk.26 )
+                            case GenRandom0
+                            solve( !KU( h(<'Cb', element('C', DH_neutral, 'g'^~ephR), 
+                                           element('C', DH_neutral, 'g'^~eph), ~rNR, '0'>)
+                                   ) @ #vk.21 )
+                              case Resp_Begin_Auth
+                              solve( !KU( element('C', DH_neutral, 'g'^~eph) ) @ #vk.23 )
+                                case Init_Begin_DH_Exchange_case_1
+                                solve( !KU( element('C', DH_neutral, 'g'^~ephR) ) @ #vk.19 )
+                                  case Resp_DH_Exchange
+                                  SOLVED // trace found
+                                qed
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma key_freshness_init:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_I_Keys( idI, idR, ltk ) @ #i) ⇒
+    (¬(∃ idI2 idR2 #k.
+        (Finished_I_Keys( idI2, idR2, ltk ) @ #k) ∧ (¬(#k = #i))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_I_Keys( idI, idR, ltk ) @ #i)
+ ∧
+  ∃ idI2 idR2 #k. (Finished_I_Keys( idI2, idR2, ltk ) @ #k) ∧ ¬(#k = #i)"
+*/
+simplify
+solve( (#k < #i)  ∥ (#i < #k) )
+  case case_1
+  solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+         ) ▶₀ #i )
+    case Init_Begin_Derive_Normal
+    solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+      case Init_Begin_DH_Exchange
+      solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+        case Create_Device
+        solve( Init_Begin_Derive( ~sid.1, ~did.1, ~eph.1, rPk, ~iN.1, rN.1,
+                                  mackey,
+                                  h(<'f5', 'ltk', 
+                                     <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                                     ~idI, ~idR>)
+               ) ▶₀ #k )
+          case Init_Begin_Derive_Normal
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case case_2
+  solve( Init_Begin_Derive( ~sid, ~did, ~eph, rPk, ~iN, rN, mackey, ltk
+         ) ▶₀ #i )
+    case Init_Begin_Derive_Normal
+    solve( !Init_Intended( ~sid, ~idR.1, ~capR ) ▶₁ #i )
+      case Init_Begin_DH_Exchange
+      solve( !Device( ~did, ~idI.1, ~capI ) ▶₂ #i )
+        case Create_Device
+        solve( Init_Begin_Derive( ~sid.1, ~did.1, ~eph.1, rPk, ~iN.1, rN.1,
+                                  mackey,
+                                  h(<'f5', 'ltk', 
+                                     <element('C', DH_neutral, x), element('C', DH_neutral, x)>, ~iN, rN, 
+                                     ~idI, ~idR>)
+               ) ▶₀ #k )
+          case Init_Begin_Derive_Normal
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma key_freshness_resp:
+  all-traces
+  "∀ #i idI idR ltk.
+    (Finished_R_Keys( idI, idR, ltk ) @ #i) ⇒
+    (¬(∃ idI2 idR2 #k.
+        (Finished_R_Keys( idI2, idR2, ltk ) @ #k) ∧ (¬(#k = #i))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ #i idI idR ltk.
+  (Finished_R_Keys( idI, idR, ltk ) @ #i)
+ ∧
+  ∃ idI2 idR2 #k. (Finished_R_Keys( idI2, idR2, ltk ) @ #k) ∧ ¬(#k = #i)"
+*/
+simplify
+solve( (#k < #i)  ∥ (#i < #k) )
+  case case_1
+  solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                              <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+         ) ▶₀ #i )
+    case Compare_Digits
+    solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+      case Resp_DH_Exchange
+      solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+        case Create_Device
+        solve( Resp_Finish_Compare( ~sid.1, ~did.1, ~eph.1,
+                                    <element('C', DH_neutral, n.1), element('C', DH_neutral, n.1)>, ~rN, iN
+               ) ▶₀ #k )
+          case Compare_Digits
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case case_2
+  solve( Resp_Finish_Compare( ~sid, ~did, ~eph,
+                              <element('C', DH_neutral, n), element('C', DH_neutral, n)>, ~rN, iN
+         ) ▶₀ #i )
+    case Compare_Digits
+    solve( !Resp_Intended( ~sid, ~idI, ~capI ) ▶₁ #i )
+      case Resp_DH_Exchange
+      solve( !Device( ~did, ~idR, ~capR ) ▶₂ #i )
+        case Create_Device
+        solve( Resp_Finish_Compare( ~sid.1, ~did.1, ~eph.1,
+                                    <element('C', DH_neutral, n.1), element('C', DH_neutral, n.1)>, ~rN, iN
+               ) ▶₀ #k )
+          case Compare_Digits
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma leakage:
+  all-traces
+  "¬(∃ t1 l1 r1 t2 l2 r2 y #i #j.
+      ((((Raised( t1, l1, r1, y ) @ #i) ∧ (Raised( t2, l2, r2, y ) @ #j)) ∧
+        (¬(t1 = t2))) ∧
+       (¬(r1 = DH_neutral))) ∧
+      (¬(r2 = DH_neutral)))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ t1 l1 r1 t2 l2 r2 y #i #j.
+  (Raised( t1, l1, r1, y ) @ #i) ∧ (Raised( t2, l2, r2, y ) @ #j)
+ ∧
+  (¬(t1 = t2)) ∧ (¬(r1 = DH_neutral)) ∧ (¬(r2 = DH_neutral))"
+*/
+simplify
+solve( Raised( t1, l1, r1, y ) @ #i )
+  case Init_Begin_Derive_Normal
+  by contradiction /* from formulas */
+next
+  case Resp_Derive_Normal
+  by contradiction /* from formulas */
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Restriction actions
+===================
+
+  restriction `InEquality' references action 
+    fact "InEq" (arity 2, Linear) 
+  but no rule has such an action.
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2025-01-20 17:15:39.562956625 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: bluetooth_nc_leak_always_0.spthy
+
+  processing time: 36.35s
+  
+  WARNING: 1 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  weak_functional (exists-trace): verified (18 steps)
+  functional (exists-trace): verified (18 steps)
+  noninj_agree_init (all-traces): falsified - found trace (21 steps)
+  noninj_agree_resp (all-traces): falsified - found trace (19 steps)
+  inj_agree_init (all-traces): falsified - found trace (21 steps)
+  inj_agree_resp (all-traces): falsified - found trace (19 steps)
+  noninj_agree_init_keys (all-traces): falsified - found trace (21 steps)
+  noninj_agree_resp_keys (all-traces): falsified - found trace (19 steps)
+  inj_agree_init_keys (all-traces): falsified - found trace (21 steps)
+  inj_agree_resp_keys (all-traces): falsified - found trace (19 steps)
+  key_secrecy_init (all-traces): falsified - found trace (20 steps)
+  key_secrecy_resp (all-traces): falsified - found trace (19 steps)
+  key_freshness_init (all-traces): verified (12 steps)
+  key_freshness_resp (all-traces): verified (12 steps)
+  leakage (all-traces): verified (4 steps)
+
+==============================================================================

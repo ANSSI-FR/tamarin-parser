@@ -1,0 +1,352 @@
+theory Dragonfly_dragonfly_reuse_once_2_3
+begin
+
+builtins: diffie-hellman, hashing
+
+functions: add/2,
+		staticpsk/0[private],
+		get_elt1/2[destructor],
+		get_elt2/2[destructor]
+
+equations: get_elt1(add(a, b), b) = a
+
+equations: get_elt2(add(a, b), a) = b
+
+rule MisGenerateRandoms:
+	[
+		Fr(~ska2),
+		Fr(~ma3)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		Random2(~ska2),
+		Random3(~ska2)
+	]
+
+rule GenRandom3:
+	[
+		Fr(~ma3)
+	]
+	-->
+	[
+		Random3(~ma3)
+	]
+
+rule GenRandom2:
+	[
+		Fr(~ska2)
+	]
+	-->
+	[
+		Random2(~ska2)
+	]
+
+rule GenRandom1:
+	[
+		Fr(~mc1)
+	]
+	-->
+	[
+		Random1(~mc1)
+	]
+
+rule GenRandom0:
+	[
+		Fr(~skc0)
+	]
+	-->
+	[
+		Random0(~skc0)
+	]
+
+#ifdef PatchReflection
+rule CreateSession:
+	let
+		pe = h($AP, $Client, staticpsk)
+	in
+	[
+		
+	]
+	--[
+		InEq($Client, $AP)
+	]->
+	[
+		APReady($AP, $Client, staticpsk, pe),
+		ClientReady($AP, $Client, staticpsk, pe),
+		!PskUsed(staticpsk),
+		!Ltk($AP, staticpsk),
+		!Ltk($Client, staticpsk)
+	]
+
+#else
+rule CreateSession:
+	let
+		pe = h($AP, $Client, staticpsk)
+	in
+	[
+		
+	]
+	--[
+		
+	]->
+	[
+		APReady($AP, $Client, staticpsk, pe),
+		ClientReady($AP, $Client, staticpsk, pe),
+		!PskUsed(staticpsk),
+		!Ltk($AP, staticpsk),
+		!Ltk($Client, staticpsk)
+	]
+
+#endif
+rule RevLtk:
+	[
+		!Ltk(A, k)
+	]
+	--[
+		RevLtk()
+	]->
+	[
+		Out(k)
+	]
+
+rule ClientCreateSession:
+	let
+		eltc = inv(pe^~mc)
+		scalarc = add(~mc, ~skc)
+	in
+	[
+		ClientReady($AP, $Client, psk, pe),
+		Random0(~skc),
+		Random1(~mc)
+	]
+	--[
+		ClientStarted1($AP, $Client, psk, pe, ~skc, eltc, scalarc)
+	]->
+	[
+		Out(< eltc, scalarc >),
+		ClientStep1($AP, $Client, psk, pe, ~skc, eltc, scalarc)
+	]
+
+rule APCreateSession:
+	let
+		elta = inv(pe^~ma)
+		scalara = add(~ma, ~ska)
+	in
+	[
+		APReady($AP, $Client, psk, pe),
+		Random2(~ska),
+		Random3(~ma),
+		In(< eltc, scalarc >)
+	]
+	--[
+		LblAPStarted($AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc),
+		APStarted($AP, $Client, elta, eltc, scalara, scalarc)
+	]->
+	[
+		Out(< elta, scalara >),
+		APStep1($AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc),
+		APProduceKey($AP, $Client, psk, pe, ~ska, eltc, scalarc)
+	]
+
+rule ClientRecvPkey:
+	[
+		ClientStep1($AP, $Client, psk, pe, ~skc, eltc, scalarc),
+		In(< elta, scalara >)
+	]
+	--[
+		ClientStarted($AP, $Client, elta, eltc, scalara, scalarc)
+	]->
+	[
+		ClientProduceKey($AP, $Client, psk, pe, ~skc, elta, scalara),
+		ClientReadyCommit($AP, $Client, psk, pe, ~skc, elta, eltc, scalara, scalarc)
+	]
+
+rule AttDerivePubKey:
+	let
+		pe = h($AP, $Client, psk)
+	in
+	[
+		!PskUsed(psk),
+		In(pe),
+		In(inv(pe^~m)),
+		In(add(~m, ~s))
+	]
+	-->
+	[
+		Out(pe^~s)
+	]
+
+rule APDeriveSS:
+	[
+		APProduceKey($AP, $Client, psk, pe, ~ska, inv(pe^~mc), add(~mc, ~skc))
+	]
+	-->
+	[
+		APGetKey($AP, $Client, psk, ~ska, pe^~skc^~ska)
+	]
+
+rule ClientDeriveSS:
+	[
+		ClientProduceKey($AP, $Client, psk, pe, ~skc, inv(pe^~ma), add(~ma, ~ska))
+	]
+	-->
+	[
+		ClientGetKey($AP, $Client, psk, ~skc, pe^~ska^~skc)
+	]
+
+rule ClientSendCommit:
+	let
+		kck = h(ss, 'DragonflyKeyDerivation', '0')
+		mk = h(ss, 'DragonflyKeyDerivation', '1')
+	in
+	[
+		ClientReadyCommit($AP, $Client, psk, pe, ~skc, elta, eltc, scalara, scalarc),
+		ClientGetKey($AP, $Client, psk, ~skc, ss)
+	]
+	--[
+		LblClientSendCommit($AP, $Client, psk, ss, kck, mk),
+		ClientStartedKeys($AP, $Client, mk)
+	]->
+	[
+		ClientStep2($AP, $Client, psk, ~skc, elta, eltc, scalara, scalarc, ss, kck, mk),
+		Out(h(< kck, scalarc, scalara, eltc, elta, $Client >))
+	]
+
+rule APSendCommit:
+	let
+		kck = h(ss, 'DragonflyKeyDerivation', '0')
+		mk = h(ss, 'DragonflyKeyDerivation', '1')
+	in
+	[
+		APGetKey($AP, $Client, psk, ~ska, ss),
+		APStep1($AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc),
+		In(clientcommit)
+	]
+	--[
+		Eq(clientcommit, h(< kck, scalarc, scalara, eltc, elta, $Client >)),
+		LblAPSentCommit($AP, $Client, ss, kck, mk),
+		APStartedKeys($AP, $Client, mk),
+		APEnded($AP, $Client, elta, eltc, scalara, scalarc),
+		APEndedKeys($AP, $Client, mk)
+	]->
+	[
+		Out(h(< kck, scalara, scalarc, elta, eltc, $AP >)),
+		APSentCommit($AP, $Client, psk, ~ska, elta, eltc, scalara, scalarc, ss, kck, mk)
+	]
+
+rule ClientRecvCommit:
+	[
+		ClientStep2($AP, $Client, psk, ~skc, elta, eltc, scalara, scalarc, ss, kck, mk),
+		In(apcommit)
+	]
+	--[
+		Eq(apcommit, h(< kck, scalara, scalarc, elta, eltc, $AP >)),
+		LblClientRecvCommit($AP, $Client, ss, kck, mk),
+		ClientEnded($AP, $Client, elta, eltc, scalara, scalarc),
+		ClientEndedKeys($AP, $Client, mk)
+	]->
+	[
+		ClientRecvCommit($AP, $Commit, psk, ~skc, elta, eltc, scalara, scalarc, ss, kck, mk)
+	]
+
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+restriction RstrEq:
+	"All a b #i . 
+	Eq(a, b) @ i ==> a = b"
+
+#ifdef PatchReflection
+restriction RstrInEq:
+	"All a b #i . 
+	InEq(a, b) @ i ==> not (a = b)"
+
+#endif
+lemma WorkingDH: exists-trace
+" Ex ap client psk pe ska elta eltc scalara scalarc ss kck mk #i #j . 
+	LblAPStarted(ap, client, psk, pe, ska, elta, eltc, scalara, scalarc) @ i & LblClientSendCommit(ap, client, psk, ss, kck, mk) @ j "
+
+lemma WorkingCommit: exists-trace
+" Ex ap client ss kck mk #i #j . 
+	LblAPSentCommit(ap, client, ss, kck, mk) @ i & LblClientRecvCommit(ap, client, ss, kck, mk) @ j "
+
+lemma InjAgreeClient:
+" All ap client elta eltc scalara scalarc #i . 
+	ClientEnded(ap, client, elta, eltc, scalara, scalarc) @ i ==> (Ex #j . 
+	APEnded(ap, client, elta, eltc, scalara, scalarc) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	ClientEnded(ap2, client2, elta, eltc, scalara, scalarc) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma InjAgreeAP:
+" All ap client elta eltc scalara scalarc #i . 
+	APEnded(ap, client, elta, eltc, scalara, scalarc) @ i ==> (Ex #j . 
+	ClientStarted(ap, client, elta, eltc, scalara, scalarc) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	APEnded(ap2, client2, elta, eltc, scalara, scalarc) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma NonInjAgreeClient:
+" All ap client elta eltc scalara scalarc #i . 
+	ClientEnded(ap, client, elta, eltc, scalara, scalarc) @ i ==> (Ex #j . 
+	APEnded(ap, client, elta, eltc, scalara, scalarc) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma NonInjAgreeAP:
+" All ap client elta eltc scalara scalarc #i . 
+	APEnded(ap, client, elta, eltc, scalara, scalarc) @ i ==> (Ex #j . 
+	ClientStarted(ap, client, elta, eltc, scalara, scalarc) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma KeysInjAgreeClient:
+" All ap client mk #i . 
+	ClientEndedKeys(ap, client, mk) @ i ==> (Ex #j . 
+	APEndedKeys(ap, client, mk) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	ClientEndedKeys(ap2, client2, mk) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma KeysInjAgreeAP:
+" All ap client mk #i . 
+	APEndedKeys(ap, client, mk) @ i ==> (Ex #j . 
+	ClientStartedKeys(ap, client, mk) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	APEndedKeys(ap2, client2, mk) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma KeysNonInjAgreeClient:
+" All ap client mk #i . 
+	ClientEndedKeys(ap, client, mk) @ i ==> (Ex #j . 
+	APEndedKeys(ap, client, mk) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma KeysNonInjAgreeAP:
+" All ap client mk #i . 
+	APEndedKeys(ap, client, mk) @ i ==> (Ex #j . 
+	ClientStartedKeys(ap, client, mk) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma WeakSecrecyAP: all-traces
+" All ap client mk #i . 
+	APEndedKeys(ap, client, mk) @ i ==> not (Ex #j . 
+	K(mk) @ j) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma WeakSecrecyClient: all-traces
+" All ap client mk #i . 
+	ClientEndedKeys(ap, client, mk) @ i ==> not (Ex #j . 
+	K(mk) @ j) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma KeyFreshnessClient:
+" All ap client mk #i . 
+	ClientEndedKeys(ap, client, mk) @ i ==> not (Ex ap2 client2 #j . 
+	ClientEndedKeys(ap2, client2, mk) @ j & not (#j = #i)) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma KeyFreshnessAP:
+" All ap client mk #i . 
+	APEndedKeys(ap, client, mk) @ i ==> not (Ex ap2 client2 #j . 
+	APEndedKeys(ap2, client2, mk) @ j & not (#j = #i)) | (Ex #r . 
+	RevLtk() @ r) "
+
+
+end

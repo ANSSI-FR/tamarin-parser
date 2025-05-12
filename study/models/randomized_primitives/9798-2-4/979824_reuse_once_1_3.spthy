@@ -1,0 +1,272 @@
+theory ISO9798_2_4_979824_reuse_once_1_3
+begin
+
+functions: senc/4,
+		sdec/4,
+		sid1_mut_cr/0,
+		sid2_mut_cr/0
+
+equations: sdec(k, n, ad, senc(k, m, n, ad)) = m
+
+rule MisGenerateRandoms:
+	[
+		Fr(~RA1),
+		Fr(~aeadNB3)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		Random1(~RA1),
+		Random3(~RA1)
+	]
+
+rule GenRandom3:
+	[
+		Fr(~aeadNB3)
+	]
+	-->
+	[
+		Random3(~aeadNB3)
+	]
+
+rule GenRandom2:
+	[
+		Fr(~aeadNA2)
+	]
+	-->
+	[
+		Random2(~aeadNA2)
+	]
+
+rule GenRandom1:
+	[
+		Fr(~RA1)
+	]
+	-->
+	[
+		Random1(~RA1)
+	]
+
+rule GenRandom0:
+	[
+		Fr(~RB0)
+	]
+	-->
+	[
+		Random0(~RB0)
+	]
+
+rule GenKeyMal:
+	[
+		In(key)
+	]
+	-->
+	[
+		!Key(key)
+	]
+
+rule GenMSpace:
+	[
+		In(m)
+	]
+	-->
+	[
+		!M(m)
+	]
+
+#ifdef n_reuse_keyleak
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+restriction notsame:
+	"All x y #i . 
+	NotM(x, y) @ i ==> not (x = y)"
+
+rule nonce_reuse_1:
+	[
+		In(senc(k, m, n, ad)),
+		In(senc(k, m2, n, ad2)),
+		!Key(k)
+	]
+	--[
+		NotM(m, m2)
+	]->
+	[
+		Out(k)
+	]
+
+#endif
+#ifdef n_reuse_messleak 
+restriction notsame2:
+	"All x y #i . 
+	NotM2(x, y) @ i ==> not (x = y)"
+
+rule nonce_reuse_2:
+	[
+		In(senc(k, m, n, ad)),
+		In(senc(k, m2, n, ad2)),
+		!M(m),
+		!M(m2)
+	]
+	--[
+		NotM2(m, m2)
+	]->
+	[
+		Out(< m, m2 >)
+	]
+
+#endif
+rule AttackerInitRoles:
+	[
+		
+	]
+	--[
+		
+	]->
+	[
+		Out(< $IdA, $IdB >)
+	]
+
+rule CreateAssociation:
+	[
+		In(< $IdA, $IdB >),
+		Fr(~kAB)
+	]
+	-->
+	[
+		!RoleA($IdA, $IdB, ~kAB),
+		!RoleB($IdA, $IdB, ~kAB),
+		!Ltk($IdA, ~kAB),
+		!Ltk($IdB, ~kAB)
+	]
+
+rule RevLtk:
+	[
+		!Ltk(A, k)
+	]
+	--[
+		RevLtk(A)
+	]->
+	[
+		Out(k)
+	]
+
+rule CreateSession:
+	[
+		!RoleA($IdA, $IdB, ~kAB),
+		!RoleB($IdA, $IdB, ~kAB)
+	]
+	-->
+	[
+		StartA($IdA, $IdB, ~kAB),
+		StartB($IdA, $IdB, ~kAB)
+	]
+
+rule RoleB_1:
+	[
+		StartB($IdA, $IdB, ~kAB),
+		Random0(~RB),
+		Fr(~Text1)
+	]
+	--[
+		BSendElt($IdA, $IdB, ~kAB, ~Text1, ~RB),
+		BStarted($IdA, $IdB, ~RB)
+	]->
+	[
+		Out(< ~RB, ~Text1 >),
+		Step1B($IdA, $IdB, ~kAB, ~RB)
+	]
+
+rule RoleA_1:
+	[
+		StartA($IdA, $IdB, ~kAB),
+		Random1(~RA),
+		Random2(~aeadNA),
+		In(< RB, Text1 >),
+		Fr(~Text2),
+		Fr(~Text3)
+	]
+	--[
+		ASendTokenAB($IdA, $IdB, ~kAB, ~RA, RB, $IdB, ~Text2, ~Text3),
+		AStarted($IdA, $IdB, ~RA, RB)
+	]->
+	[
+		Out(< ~Text3, ~aeadNA, senc(~kAB, < sid1_mut_cr, ~RA, RB, $IdB, ~Text2 >, ~aeadNA, 'ad') >),
+		Step1A($IdA, $IdB, ~kAB, ~RA, RB, ~Text2, ~Text3),
+		!Key(~kAB),
+		!M(< sid1_mut_cr, ~RA, RB, $IdB, ~Text2 >)
+	]
+
+rule RoleB_2:
+	[
+		Step1B($IdA, $IdB, ~kAB, ~RB),
+		In(< Text3, aeadNA, senc(~kAB, < sid1_mut_cr, RA, ~RB, $IdB, Text2 >, aeadNA, 'ad') >),
+		Fr(~Text4),
+		Random3(~aeadNB),
+		Fr(~Text5)
+	]
+	--[
+		BRecvTokenAB($IdA, $IdB, ~kAB, RA, ~RB, $IdB, Text2, Text3),
+		BSendTokenBA($IdA, $IdB, ~kAB, RA, $IdB, ~Text4, ~Text5),
+		BEnded($IdA, $IdB, RA, ~RB)
+	]->
+	[
+		Out(< ~Text5, ~aeadNB, senc(~kAB, < sid2_mut_cr, RA, $IdB, ~Text4 >, ~aeadNB, 'ad') >),
+		!Key(~kAB),
+		!M(< sid2_mut_cr, RA, $IdB, ~Text4 >)
+	]
+
+rule RoleA_2:
+	[
+		Step1A($IdA, $IdB, ~kAB, ~RA, RB, ~Text2, ~Text3),
+		In(< Text5, aeadNB, senc(~kAB, < sid2_mut_cr, ~RA, $IdB, Text4 >, aeadNB, 'ad') >)
+	]
+	--[
+		ARecvTokenBA($IdA, $IdB, ~kAB, ~RA, $IdB, Text4, Text5),
+		AEnded($IdA, $IdB, ~RA, RB)
+	]->
+	[
+		
+	]
+
+lemma mut_ts_functional: exists-trace
+" Ex ida1 idb1 kab1 ra1 text41 text51 ida2 idb2 kab2 ra2 text42 text52 #i #j . 
+	BSendTokenBA(ida1, idb1, kab1, ra1, idb1, text41, text51) @ i & ARecvTokenBA(ida2, idb2, kab2, ra2, idb2, text42, text52) @ j & not (Ex #r . 
+	RevLtk(ida1) @ r) & not (Ex #r . 
+	RevLtk(idb1) @ r) & not (Ex #r . 
+	RevLtk(ida2) @ r) & not (Ex #r . 
+	RevLtk(idb2) @ r) "
+
+lemma agree_a:
+" All ida idb ra rb #i . 
+	AEnded(ida, idb, ra, rb) @ i ==> (Ex #j . 
+	BEnded(ida, idb, ra, rb) @ j & j < i & not (Ex ida2 idb2 #i2 . 
+	AEnded(ida2, idb2, ra, rb) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma agree_b:
+" All ida idb ra rb #i . 
+	BEnded(ida, idb, ra, rb) @ i ==> (Ex #j . 
+	AStarted(ida, idb, ra, rb) @ j & j < i & not (Ex ida2 idb2 #i2 . 
+	BEnded(ida2, idb2, ra, rb) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma noninj_agree_a:
+" All ida idb ra rb #i . 
+	AEnded(ida, idb, ra, rb) @ i ==> (Ex #j . 
+	BEnded(ida, idb, ra, rb) @ j & j < i) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+lemma noninj_agree_b:
+" All ida idb ra rb #i . 
+	BEnded(ida, idb, ra, rb) @ i ==> (Ex #j . 
+	AStarted(ida, idb, ra, rb) @ j & j < i) | (Ex #r . 
+	RevLtk(ida) @ r) | (Ex #r . 
+	RevLtk(idb) @ r) "
+
+
+end

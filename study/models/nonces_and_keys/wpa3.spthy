@@ -1,0 +1,407 @@
+theory WPA3
+begin
+
+builtins: diffie-hellman, hashing
+
+/*
+   ============= CSF'25
+
+   Protocol:    WPA3 
+   Modeler:     X
+   Date:        2024
+   Source:      IEEE 802.11 and WPA 3 Specification
+
+   Description of the protocol: 
+  protocol WPA3 {
+    pe = hunt-and-peck(A,B,passphrase)
+
+    1.  C -> AP : < sc+mc, pe^(-mc) >
+    2.  AP -> C : < sa+ma, pe^(-ma) >
+    3.  ss = pe^(sc*sa)
+    4.  kck || mk = kdf(ss, "Dragonfly key derivation")
+    5.  C -> AP : mac(kck, <sc+mc, sa+ma, pe^(-mc), pe^(-ma), AP>)
+    6.  AP -> C : mac(kck, <sa+ma, sc+mc, pe^(-ma), pe^(-mc), C>)
+    7.  AP -> C, <'1', ANonce>
+    8.  ptk = kdf(AP, C, ANonce, SNonce, h(mk))
+    9.  C -> AP, <'2', SNonce>, mac(<'2', SNonce>, ptk)
+    10. AP -> C, <'3', ANonce>, mac(<'3', ANonce>, ptk)
+    11. C -> AP, <'4', End>, mac(<'4', End>, ptk)
+
+    Nonces:
+    C: mc, SNonce
+    AP: ma, ANonce
+
+    Ephemeral keys:
+    C: skc
+    AP: ska
+
+    This model is complicated to run as is, therefore, some post-processing steps were required after the generation of the nonce misuse cases:
+    - For all models that identify no attacks, adding a lemma "secrecy_pe", tagged as a reuse lemma, that checks the attacker can never know pe helps Tamarin prove the properties.
+    - For all other models (i.e., when secrecype is False):
+        + For the key freshness lemmas, they are proven as is, without restricting the attacker, hence the proof holds for the complete model
+        + All the other security lemmas fail and Tamarin identify attacks on them. To prevent Tamarin from investigating incorrect paths where it does not end, the attacker is restricted (for example, only one session is considered). This doesn't impact the results, because if a security property is false when there is only one session, it is obviously false when there is an unbounded number of sessions.
+    - The provided verification script should work on all WPA3 models, Tamarin is able to autoprove all of them.
+    - However, these models were not generated from "just" the TamarinParser tool, it was required to investigate them and provide some (light) guidance to Tamarin to prove the results for all cases.
+
+*/
+
+
+
+functions: mac/2,
+		verif/3,
+		true/0,
+		add/2,
+                hpe/3,
+                hkck/3,
+                hmk/3,
+                hptk/6,
+                hpsk/1,
+		get_add_blk1/2[destructor],
+		get_add_blk2/2[destructor],
+		staticpsk/0[private]
+
+equations: verif(mac(m, k), m, k) = true
+
+equations: get_add_blk1(add(a, b), b) = a
+
+equations: get_add_blk2(add(a, b), a) = b
+
+rule CreateSession:
+	let
+		pe = hpe($AP, $Client, staticpsk)
+	in
+	[
+	]
+	--[	Create($AP,$Client,staticpsk,pe)
+]->
+	[
+		APReady($AP, $Client, staticpsk, pe),
+		ClientReady($AP, $Client, staticpsk, pe),
+		!PskUsed(staticpsk),
+		!Ltk($AP, staticpsk),
+		!Ltk($Client, staticpsk)
+	]
+
+rule RevLtk:
+	[
+		!Ltk(A, k)
+	]
+	--[
+		RevLtk()
+	]->
+	[
+		Out(k)
+	]
+
+rule ClientCreateSession:
+	let
+		eltc = inv(pe^~mc)
+		scalarc = add(~mc, ~skc)
+	in
+	[
+		ClientReady($AP, $Client, psk, pe),
+		Random(~skc),
+		Random(~mc)
+	]
+	--[
+		ClientStarted1($AP, $Client, psk, pe, ~skc, eltc, scalarc)
+	]->
+	[
+		Out(< eltc, scalarc >),
+		ClientStep1($AP, $Client, psk, pe, ~skc, eltc, scalarc)
+	]
+
+rule APCreateSession:
+	let
+		elta = inv(pe^~ma)
+		scalara = add(~ma, ~ska)
+	in
+	[
+		APReady($AP, $Client, psk, pe),
+		Random(~ska),
+		Random(~ma),
+		In(< eltc, scalarc >)
+	]
+	--[
+		LblAPStarted($AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc)
+	]->
+	[
+		Out(< elta, scalara >),
+		APStep1($AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc),
+		APProduceKey($AP, $Client, psk, pe, ~ska, eltc, scalarc)
+	]
+
+rule ClientRecvPkey:
+	[
+		ClientStep1($AP, $Client, psk, pe, ~skc, eltc, scalarc),
+		In(< elta, scalara >)
+	]
+	-->
+	[
+		ClientProduceKey($AP, $Client, psk, pe, ~skc, elta, scalara),
+		ClientReadyCommit($AP, $Client, psk, pe, ~skc, elta, eltc, scalara, scalarc)
+	]
+
+rule AttDerivePubKey:
+	let
+		pe = hpe($AP, $Client, psk)
+	in
+	[
+		!PskUsed(psk),
+		In(pe),
+		In(inv(pe^~m)),
+		In(add(~m, ~s))
+	]
+	-->
+	[
+		Out(pe^~s)
+	]
+
+rule APDeriveSS:
+	[
+		APProduceKey($AP, $Client, psk, pe, ~ska, inv(pe^~mc), add(~mc, ~skc))
+	]
+	-->
+	[
+		APGetKey($AP, $Client, psk, ~ska, pe^~ska^~skc)
+	]
+
+rule ClientDeriveSS:
+	[
+		ClientProduceKey($AP, $Client, psk, pe, ~skc, inv(pe^~ma), add(~ma, ~ska))
+	]
+	-->
+	[
+		ClientGetKey($AP, $Client, psk, ~skc, pe^~skc^~ska)
+	]
+
+rule ClientSendCommit:
+	let
+		kck = hkck(ss, 'DragonflyKeyDerivation', '0')
+		mk = hmk(ss, 'DragonflyKeyDerivation', '1')
+	in
+	[
+		ClientReadyCommit($AP, $Client, psk, pe, ~skc, elta, eltc, scalara, scalarc),
+		ClientGetKey($AP, $Client, psk, ~skc, ss)
+	]
+	--[
+		LblClientSendCommit($AP, $Client, psk, ss, kck, mk)
+	]->
+	[
+		ClientStep2($AP, $Client, psk, ~skc, elta, eltc, scalara, scalarc, ss, kck, mk),
+		Out(h(< kck, scalarc, scalara, eltc, elta, $Client >))
+	]
+
+rule APSendCommit:
+	let
+		kck = hkck(ss, 'DragonflyKeyDerivation', '0')
+		mk = hmk(ss, 'DragonflyKeyDerivation', '1')
+	in
+	[
+		APGetKey($AP, $Client, psk, ~ska, ss),
+		APStep1($AP, $Client, psk, pe, ~ska, elta, eltc, scalara, scalarc),
+		In(clientcommit)
+	]
+	--[
+		Eq(clientcommit, h(< kck, scalarc, scalara, eltc, elta, $Client >)),
+		LblAPSentCommit($AP, $Client, ss, kck, mk)
+	]->
+	[
+		Out(h(< kck, scalara, scalarc, elta, eltc, $AP >)),
+		APSentCommit($AP, $Client, psk, ~ska, elta, eltc, scalara, scalarc, ss, kck, mk),
+		FourWayAPReady($AP, $Client, mk)
+	]
+
+rule ClientRecvCommit:
+	[
+		ClientStep2($AP, $Client, psk, ~skc, elta, eltc, scalara, scalarc, ss, kck, mk),
+		In(apcommit)
+	]
+	--[
+		Eq(apcommit, h(< kck, scalara, scalarc, elta, eltc, $AP >)),
+		LblClientRecvCommit($AP, $Client, ss, kck, mk)
+	]->
+	[
+		ClientRecvCommit($AP, $Commit, psk, ~skc, elta, eltc, scalara, scalarc, ss, kck, mk),
+		FourWayClientReady($AP, $Client, mk)
+	]
+
+rule FourWayAPCreateSession:
+	[
+		FourWayAPReady($AP, $Client, psk),
+		Random(~ANonce)
+	]
+	-->
+	[
+		APSentRandom($AP, $Client, psk, ~ANonce),
+		Out(< '1', ~ANonce >)
+	]
+
+rule FourWayClientCreateSession:
+	let
+		ptk = hptk($AP, $Client, ANonce, ~SNonce, 'Pairwisekeyexpansion', hpsk(psk))
+	in
+	[
+		FourWayClientReady($AP, $Client, psk),
+		In(ANonce),
+		Random(~SNonce)
+	]
+	--[
+		ClientStarted($AP, $Client, ~SNonce, ANonce),
+		ClientStartedKeys($AP, $Client, ptk)
+	]->
+	[
+		ClientSentRandom($AP, $Client, ~SNonce, ANonce, ptk),
+		Out(< < '2', ~SNonce >, mac(< '2', ~SNonce >, ptk) >)
+	]
+
+rule APRecvMsg2:
+	let
+		ptk = hptk($AP, $Client, ~ANonce, SNonce, 'Pairwisekeyexpansion', hpsk(psk))
+	in
+	[
+		In(< < '2', SNonce >, m >),
+		APSentRandom($AP, $Client, psk, ~ANonce)
+	]
+	--[
+		Eq(verif(m, < '2', SNonce >, ptk), true),
+		LblRecvMsg2(),
+		LblAPSentMsg3($AP, $Client, SNonce, ~ANonce, ptk),
+		APStarted($AP, $Client, SNonce, ~ANonce),
+		APStartedKeys($AP, $Client, ptk)
+	]->
+	[
+		APSentMsg3($AP, $Client, psk, SNonce, ~ANonce, ptk),
+		Out(< < '3', ~ANonce >, mac(< '3', ~ANonce >, ptk) >)
+	]
+
+rule ClientRecvMsg3:
+	[
+		ClientSentRandom($AP, $Client, ~SNonce, ANonce, ptk),
+		In(< < '3', ANonce >, m >)
+	]
+	--[
+		Eq(verif(m, < '3', ANonce >, ptk), true),
+		LblClientSentMsg4($AP, $Client, ~SNonce, ANonce, ptk),
+		LblRecvMsg3(),
+		ClientEnded($AP, $Client, ~SNonce, ANonce),
+		ClientEndedKeys($AP, $Client, ptk)
+	]->
+	[
+		ClientSentMsg4($AP, $Client, ~SNonce, ANonce, ptk),
+		Out(< < '4', 'End' >, mac(< '4', 'End' >, ptk) >)
+	]
+
+rule APRecvMsg4:
+	[
+		APSentMsg3($AP, $Client, psk, SNonce, ~ANonce, ptk),
+		In(< < '4', 'End' >, m >)
+	]
+	--[
+		Eq(verif(m, < '4', 'End' >, ptk), true),
+		LblAPRecvMsg4($AP, $Client, SNonce, ~ANonce, ptk),
+		LblRecvMsg4(),
+		APEnded($AP, $Client, SNonce, ~ANonce),
+		APEndedKeys($AP, $Client, ptk)
+	]->
+	[
+		APRecvMsg4($AP, $Client, psk, SNonce, ~ANonce, ptk)
+	]
+
+restriction RstrEq:
+	"All a b #i . 
+	Eq(a, b) @ i ==> a = b"
+
+/*
+lemma WorkingCommit: exists-trace
+" Ex ap client ss kck mk #i #j . 
+	LblAPSentCommit(ap, client, ss, kck, mk) @ i & LblClientRecvCommit(ap, client, ss, kck, mk) @ j "
+
+lemma functional_4way: exists-trace
+" Ex a c snonce anonce ptk #i #j . 
+	LblClientSentMsg4(a, c, snonce, anonce, ptk) @ i & LblAPRecvMsg4(a, c, snonce, anonce, ptk) @ j "
+*/
+
+
+lemma secrecy_pe[reuse]:
+"All AP C s pe #j. 
+	Create(AP, C, s, pe)@#j ==> (not (Ex #i. K(pe)@#i)) | (Ex #r. RevLtk()@#r)"
+
+
+lemma inj_agree_ap:
+" All ap client snonce anonce #i . 
+	APEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	ClientEnded(ap, client, snonce, anonce) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	APEnded(ap2, client2, snonce, anonce) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma inj_agree_client:
+" All ap client snonce anonce #i . 
+	ClientEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	APStarted(ap, client, snonce, anonce) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	ClientEnded(ap2, client2, snonce, anonce) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma noninj_agree_ap:
+" All ap client snonce anonce #i . 
+	APEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	ClientEnded(ap, client, snonce, anonce) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma noninj_agree_client:
+" All ap client snonce anonce #i . 
+	ClientEnded(ap, client, snonce, anonce) @ i ==> (Ex #j . 
+	APStarted(ap, client, snonce, anonce) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_inj_agree_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	ClientEndedKeys(ap, client, ptk) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	APEndedKeys(ap2, client2, ptk) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_inj_agree_client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	APStartedKeys(ap, client, ptk) @ j & j < i & not (Ex ap2 client2 #i2 . 
+	ClientEndedKeys(ap2, client2, ptk) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_noninj_agree_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	ClientEndedKeys(ap, client, ptk) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma keys_noninj_agree_client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> (Ex #j . 
+	APStartedKeys(ap, client, ptk) @ j & j < i) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma weak_secrecy_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> not (Ex #j . 
+	K(ptk) @ j) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma weak_secrecy_Client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> not (Ex #j . 
+	K(ptk) @ j) | (Ex #r . 
+	RevLtk() @ r) "
+
+lemma key_freshness_client:
+" All ap client ptk #i . 
+	ClientEndedKeys(ap, client, ptk) @ i ==> not (Ex ap2 client2 #j . 
+	ClientEndedKeys(ap2, client2, ptk) @ j & not (#i = #j)) 
+    | (Ex #r . RevLtk()@r)"
+
+lemma key_freshness_ap:
+" All ap client ptk #i . 
+	APEndedKeys(ap, client, ptk) @ i ==> not (Ex ap2 client2 #j . 
+	APEndedKeys(ap2, client2, ptk) @ j & not (#i = #j))
+    | (Ex #r . RevLtk()@r)"
+
+end

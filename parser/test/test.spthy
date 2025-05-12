@@ -1,0 +1,13 @@
+theory Test
+begin
+
+rule A1:
+    [Fr(~n)] --[LblA1(~n)]-> [Out(~n)]
+
+rule B1:
+    [In(~n1), Fr(~n)] --[LblB1(~n)]-> [Out(~n)]
+
+rule A2:
+    [In(~n2), Fr(~n)] --[LblA2(~n)]-> [Out(~n)]
+
+end

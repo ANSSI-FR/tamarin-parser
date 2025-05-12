@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Model configuration</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.min.css") }}">
+	</head>
+	<body>
+<div class="container">
+			<div class="text-center">
+		<h1>Model configuration</h1>
+
+		<h3><a href="/{{model.uuid}}/file">{{ model.orig_filename }}</a></h3>
+			</div>
+
+
+	<form action="/{{ model.uuid }}/configure" method="POST" enctype="multipart/form-data">
+		<br />
+		<br />
+	<div class="col-md">
+		<h4 class="text-center">Nonce misuse configuration</h4>
+		<br />
+		<div class="row">
+		<div class="col-3">
+		</div>
+		<div class="form-check col-9">
+			<input class="form-check-input" type="checkbox" name="ReuseOnce" id="check1" {% if model.reuse_once == 1 %}checked{% endif %}>
+			<label class="form-check-label" for="check1">ReuseOnce</label>
+		</div>
+		</div>
+
+		<div class="row">
+		<div class="col-3">
+		</div>
+		<div class="form-check col-9">
+			<input class="form-check-input" type="checkbox" name="ReuseAlways" id="check2" {% if model.reuse_always == 1 %}checked{% endif %}>
+			<label class="form-check-label" for="check2">ReuseAlways</label>
+		</div>
+		</div>
+
+		<div class="row">
+		<div class="col-3">
+		</div>
+		<div class="form-check col-9">
+			<input class="form-check-input" type="checkbox" name="LeakOnce" id="check3" {% if model.leak_once == 1 %}checked{% endif %}>
+			<label class="form-check-label" for="check3">LeakOnce</label>
+		</div>
+		</div>
+
+		<div class="row">
+		<div class="col-3">
+		</div>
+		<div class="form-check col-9">
+			<input class="form-check-input" type="checkbox" name="LeakAlways" id="check4" {% if model.leak_always == 1 %}checked{% endif %}>
+			<label class="form-check-label" for="check4">LeakAlways</label>
+		</div>
+		</div>
+	</div>
+	<div class="col-md">
+		<h4 class="text-center">Model Nonce(...) format</h4>
+		<br />
+
+		<div class="row">
+		<div class="col-3">
+		</div>
+		<div class="form-check col-9">
+			<input class="form-check-input" type="radio" name="nonceFormat" value="simple" id="simple" {% if model.format == 'simple' %}checked{% endif %}>
+			<label class="form-check-label" for="simple">Simple</label>
+		</div>
+		</div>
+
+		<div class="row">
+		<div class="col-3">
+		</div>
+		<div class="form-check col-9">
+			<input class="form-check-input" type="radio" name="nonceFormat" value="role" id="role" {% if model.format == 'role' %}checked{% endif %}>
+			<label class="form-check-label" for="role">Role</label>
+		</div>
+		</div>
+	</div>
+
+		<br />
+	<div class="col-md">
+		<h4 class="text-center">Options</h4>
+		<br />
+	</div>
+		<br />
+		<div class="row">
+            <div class="col-4"></div>
+            <div class="col-1"> <p># options: <span id="nbOptions">{{ options | length }}</span></p></div>
+            <div class="col-1"><button id="btnAdd" type="button" width="1em">+</button></div>
+            <div class="col-1"><button id="btnRm" type="button" width="1em">-</button></div>
+        </div>
+
+	        <div id="optionList">
+                {% set i = 0 %}
+                {% for opt in options %}
+                <div class="option row">
+                    <div class="col-5">
+                        <label class="form-text-label" for="name{{i}}"> Name (a-zA-Z0-9_) : </label>
+                        <input class="form-text-input" name="name{{i}}" id="name{{i}}" pattern="[a-zA-Z0-9_]+" type="text" value="{{opt.name}}">
+                    </div>
+                    <div class="col-1"></div>
+                    <div class="col-5">
+                        <label class="form-text-label" for="macro{{i}}"> Macros (separated by commas) : </label>
+                        <input class="form-text-input" name="macro{{i}}" id="macro{{i}}" pattern="[a-zA-Z0-9_,]+" type="text" value="{{opt.flags}}">
+                    </div>
+                </div>
+                {% set i = i+1 %}
+                {% endfor %}
+			</div>
+
+		<br />
+		<div class="row">
+			<div class="col-4">
+			</div>
+	   <input type="submit" class="text-center col-4"/>
+		</div>
+	</form>
+    <div class="generated">
+        <h4>Generated files</h4>
+        <br />
+        <ul>
+            {% for f in files %}
+                <li><a href="/{{f.uuid}}/file">{{ f.name }}</a></h3>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+	<script type="text/javascript">
+	function addOption(){
+        container = document.getElementById("optionList");
+        nbOpts = document.getElementById("nbOptions");
+        n = nbOpts.innerHTML;
+
+        optionRow = document.createElement("div");
+        optionRow.classList.add("option"); 
+        optionRow.classList.add("row"); 
+
+        nameDiv = document.createElement("div");
+        nameDiv.classList.add("col-5");
+
+        nameLabel = document.createElement("label");
+        nameLabel.classList.add("form-text-label");
+        nameLabel.setAttribute("for", "name" + n); // <- HERE
+        nameLabel.innerHTML = "Name (a-zA-Z0-9_) : "
+
+        nameInput = document.createElement("input");
+        nameInput.classList.add("form-text-input");
+        nameInput.id = "name" + n;
+        nameInput.name = "name" + n;
+        nameInput.setAttribute("pattern", "[a-zA-Z0-9_]+");
+        nameInput.type = "text";
+
+        nameDiv.appendChild(nameLabel);
+        nameDiv.appendChild(nameInput);
+
+        spaceDiv = document.createElement("div");
+        spaceDiv.classList.add("col-1");
+
+        macroDiv = document.createElement("div");
+        macroDiv.classList.add("col-5");
+
+        macroLabel = document.createElement("label");
+        macroLabel.classList.add("form-text-label");
+        macroLabel.setAttribute("for", "macro" + n); // <- HERE
+        macroLabel.innerHTML = "Macros (separated by commas) : "
+
+        macroInput = document.createElement("input");
+        macroInput.classList.add("form-text-input");
+        macroInput.name = "macro" + n;
+        macroInput.id = "macro" + n;
+        macroInput.setAttribute("pattern", "[a-zA-Z0-9_,]+");
+        macroInput.type = "text";
+        
+        macroDiv.appendChild(macroLabel);
+        macroDiv.appendChild(macroInput);
+
+        optionRow.appendChild(nameDiv);
+        optionRow.appendChild(spaceDiv);
+        optionRow.appendChild(macroDiv);
+
+        container.appendChild(optionRow);
+	    
+        nbOpts.innerHTML = String(parseInt(n) + 1);
+	}
+
+    function rmOption() {
+        container = document.getElementById("optionList");
+        if (container.children.length > 1) {
+            container.removeChild(container.children[container.children.length-1]);
+            nbOpts = document.getElementById("nbOptions");
+            nbOpts.innerHTML = String(parseInt(nbOpts.innerHTML) - 1);
+        }
+    }
+
+    function submitForm() {
+
+    }
+document.getElementById ("btnAdd").addEventListener ("click", addOption, false);
+document.getElementById ("btnRm").addEventListener ("click", rmOption, false);
+	</script>
+	</body>
+</html>

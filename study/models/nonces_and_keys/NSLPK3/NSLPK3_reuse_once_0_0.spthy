@@ -1,0 +1,209 @@
+theory NSLPK3_NSLPK3_reuse_once_0_0
+begin
+
+builtins: asymmetric-encryption
+
+rule MisGenerateNonces:
+	[
+		Fr(~ni0)
+	]
+	--[
+		MisgenerateOnlyOnce()
+	]->
+	[
+		Nonce0(~ni0),
+		Nonce0(~ni0)
+	]
+
+rule GenNonce1:
+	[
+		Fr(~nr1)
+	]
+	-->
+	[
+		Nonce1(~nr1)
+	]
+
+rule GenNonce0:
+	[
+		Fr(~ni0)
+	]
+	-->
+	[
+		Nonce0(~ni0)
+	]
+
+rule Register_pk:
+	[
+		Fr(~ltkA)
+	]
+	-->
+	[
+		!Ltk($A, ~ltkA),
+		!Pk($A, pk(~ltkA)),
+		Out(pk(~ltkA))
+	]
+
+rule Reveal_ltk:
+	[
+		!Ltk(A, ltkA)
+	]
+	--[
+		RevLtk(A)
+	]->
+	[
+		Out(ltkA)
+	]
+
+rule I_1:
+	let
+		m1 = aenc{ '1', ~ni, $I }pkR
+	in
+	[
+		Nonce0(~ni),
+		!Pk($R, pkR)
+	]
+	--[
+		OUT_I_1(m1)
+	]->
+	[
+		Out(m1),
+		St_I_1($I, $R, ~ni)
+	]
+
+rule R_1:
+	let
+		m1 = aenc{ '1', ni, I }pk(ltkR)
+		m2 = aenc{ '2', ni, ~nr, $R }pkI
+	in
+	[
+		!Ltk($R, ltkR),
+		In(m1),
+		!Pk(I, pkI),
+		Nonce1(~nr)
+	]
+	--[
+		IN_R_1_ni(ni, m1),
+		OUT_R_1(m2),
+		RunningR(I, $R, < 'init', ni, ~nr >)
+	]->
+	[
+		Out(m2),
+		St_R_1($R, I, ni, ~nr)
+	]
+
+rule I_2:
+	let
+		m2 = aenc{ '2', ni, nr, R }pk(ltkI)
+		m3 = aenc{ '3', nr }pkR
+	in
+	[
+		St_I_1(I, R, ni),
+		!Ltk(I, ltkI),
+		In(m2),
+		!Pk(R, pkR)
+	]
+	--[
+		IN_I_2_nr(nr, m2),
+		CommitI(I, R, < 'init', ni, nr >),
+		RunningI(R, I, < 'resp', ni, nr >),
+		SecretINr(I, R, nr),
+		SecretINi(I, R, ni)
+	]->
+	[
+		Out(m3)
+	]
+
+rule R_2:
+	[
+		St_R_1(R, I, ni, nr),
+		!Ltk(R, ltkR),
+		In(aenc{ '3', nr }pk(ltkR))
+	]
+	--[
+		CommitR(R, I, < 'resp', ni, nr >),
+		SecretRNr(R, I, nr),
+		SecretRNi(R, I, ni)
+	]->
+	[
+		
+	]
+
+restriction RestrMisgeneratesOnlyOnce:
+"All #i #j . MisgenerateOnlyOnce() @i & MisgenerateOnlyOnce() @j ==> #i = #j"
+
+lemma types [sources]:
+" (All ni m1 #i . 
+	IN_R_1_ni(ni, m1) @ i ==> ((Ex #j . 
+	KU(ni) @ j & j < i) | (Ex #j . 
+	OUT_I_1(m1) @ j))) & (All nr m2 #i . 
+	IN_I_2_nr(nr, m2) @ i ==> ((Ex #j . 
+	KU(nr) @ j & j < i) | (Ex #j . 
+	OUT_R_1(m2) @ j))) "
+
+lemma nonce_secrecy_I_Ni:
+" not (Ex A B s #i . 
+	SecretINi(A, B, s) @ i & (Ex #j . 
+	K(s) @ j) & not (Ex #r . 
+	RevLtk(A) @ r) & not (Ex #r . 
+	RevLtk(B) @ r)) "
+
+lemma nonce_secrecy_I_Nr:
+" not (Ex A B s #i . 
+	SecretINr(A, B, s) @ i & (Ex #j . 
+	K(s) @ j) & not (Ex #r . 
+	RevLtk(A) @ r) & not (Ex #r . 
+	RevLtk(B) @ r)) "
+
+lemma nonce_secrecy_R_Ni:
+" not (Ex A B s #i . 
+	SecretRNi(A, B, s) @ i & (Ex #j . 
+	K(s) @ j) & not (Ex #r . 
+	RevLtk(A) @ r) & not (Ex #r . 
+	RevLtk(B) @ r)) "
+
+lemma nonce_secrecy_R_Nr:
+" not (Ex A B s #i . 
+	SecretRNr(A, B, s) @ i & (Ex #j . 
+	K(s) @ j) & not (Ex #r . 
+	RevLtk(A) @ r) & not (Ex #r . 
+	RevLtk(B) @ r)) "
+
+lemma injective_agreeI:
+" All actor peer params #i . 
+	CommitI(actor, peer, params) @ i ==> (Ex #j . 
+	RunningR(actor, peer, params) @ j & j < i & not (Ex actor2 peer2 #i2 . 
+	CommitI(actor2, peer2, params) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk(actor) @ r) | (Ex #r . 
+	RevLtk(peer) @ r) "
+
+lemma injective_agreeR:
+" All actor peer params #i . 
+	CommitR(actor, peer, params) @ i ==> (Ex #j . 
+	RunningI(actor, peer, params) @ j & j < i & not (Ex actor2 peer2 #i2 . 
+	CommitR(actor2, peer2, params) @ i2 & not (#i = #i2))) | (Ex #r . 
+	RevLtk(actor) @ r) | (Ex #r . 
+	RevLtk(peer) @ r) "
+
+lemma non_injective_agreeI:
+" All actor peer params #i . 
+	CommitI(actor, peer, params) @ i ==> (Ex #j . 
+	RunningR(actor, peer, params) @ j & j < i) | (Ex #r . 
+	RevLtk(actor) @ r) | (Ex #r . 
+	RevLtk(peer) @ r) "
+
+lemma non_injective_agreeR:
+" All actor peer params #i . 
+	CommitR(actor, peer, params) @ i ==> (Ex #j . 
+	RunningI(actor, peer, params) @ j & j < i) | (Ex #r . 
+	RevLtk(actor) @ r) | (Ex #r . 
+	RevLtk(peer) @ r) "
+
+lemma session_key_setup_possible: exists-trace
+" Ex A B s #i . 
+	SecretINi(A, B, s) @ i & not (Ex #r . 
+	RevLtk(A) @ r) & not (Ex #r . 
+	RevLtk(B) @ r) "
+
+
+end

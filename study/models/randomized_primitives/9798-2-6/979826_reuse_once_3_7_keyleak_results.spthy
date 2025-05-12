@@ -1,0 +1,2645 @@
+theory ISO9798_2_6_979826_reuse_once_3_7 begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, h/1, idP/0, pair/2, sdec/4, senc/4, sid1_tp_cr/0,
+           sid2_tp_cr/0, sid3_tp_cr/0, sid4_tp_cr/0, snd/1
+equations:
+    fst(<x.1, x.2>) = x.1,
+    sdec(k, n, ad, senc(k, m, n, ad)) = m,
+    snd(<x.1, x.2>) = x.2
+
+tactic: provesources
+presort: s
+prio: {id}
+  regex"senc.*kAB.*x.*"
+
+
+tactic: agreea
+presort: s
+prio: {id}
+  regex"senc\(~kAP.*"
+
+
+tactic: agreeb
+presort: s
+prio: {id}
+  regex"senc\(~kBP.*"
+
+
+
+
+
+rule (modulo E) MisGenerateRandoms:
+   [ Fr( ~n13 ), Fr( ~n47 ) ]
+  --[ MisgenerateOnlyOnce( ) ]->
+   [ Random3( ~n13 ), Random7( ~n13 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom7:
+   [ Fr( ~n47 ) ] --> [ Random7( ~n47 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom6:
+   [ Fr( ~n36 ) ] --> [ Random6( ~n36 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom5:
+   [ Fr( ~RA25 ) ] --> [ Random5( ~RA25 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom4:
+   [ Fr( ~n24 ) ] --> [ Random4( ~n24 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom3:
+   [ Fr( ~n13 ) ] --> [ Random3( ~n13 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom2:
+   [ Fr( ~kAB2 ) ] --> [ Random2( ~kAB2 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom1:
+   [ Fr( ~RA1 ) ] --> [ Random1( ~RA1 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenRandom0:
+   [ Fr( ~RB0 ) ] --> [ Random0( ~RB0 ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenKeyMal:
+   [ In( key ) ] --> [ !Key( key ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) GenMSpace:
+   [ In( m ) ] --> [ !M( m ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction RestrMisgeneratesOnlyOnce:
+  "∀ #i #j.
+    ((MisgenerateOnlyOnce( ) @ #i) ∧ (MisgenerateOnlyOnce( ) @ #j)) ⇒
+    (#i = #j)"
+  // safety formula
+
+restriction notsame:
+  "∀ x y #i. (NotM( x, y ) @ #i) ⇒ (¬(x = y))"
+  // safety formula
+
+rule (modulo E) nonce_reuse_1:
+   [ In( senc(k, m, n, ad) ), In( senc(k, m2, n, ad) ), !Key( k ) ]
+  --[ NotM( m, m2 ), LReuse( k ) ]->
+   [ Out( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) AttackerInitRoles:
+   [ ] --> [ Out( <$IdA, $IdB> ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) CreateAssociation:
+   [ In( <$IdA, $IdB, idP> ), Fr( ~kAP ), Fr( ~kBP ) ]
+  -->
+   [
+   !RoleA( idP, $IdA, $IdB, ~kAP ), !RoleB( idP, $IdA, $IdB, ~kBP ),
+   !RoleP( idP, $IdA, $IdB, ~kAP, ~kBP ), !Ltk( $IdA, ~kAP ),
+   !Ltk( idP, ~kAP ), !Ltk( $IdB, ~kBP ), !Ltk( idP, ~kBP )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RevLtk:
+   [ !Ltk( A, k ) ] --[ RevLtk( A ) ]-> [ Out( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) CreateSession:
+   [
+   !RoleA( idP, $IdA, $IdB, ~kAP ), !RoleB( idP, $IdA, $IdB, ~kBP ),
+   !RoleP( idP, $IdA, $IdB, ~kAP, ~kBP )
+   ]
+  -->
+   [
+   StartA( idP, $IdA, $IdB, ~kAP ), StartB( idP, $IdA, $IdB, ~kBP ),
+   StartP( idP, $IdA, $IdB, ~kAP, ~kBP )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleB_1:
+   [ StartB( idP, $IdA, $IdB, ~kBP ), Random0( ~RB ), Fr( ~Text1 ) ]
+  --[
+  BSendElt( idP, $IdA, $IdB, ~kBP, ~Text1, ~RB ),
+  BStarted( idP, $IdA, $IdB, ~RB )
+  ]->
+   [ Out( <~RB, ~Text1> ), Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleA_1:
+   [
+   StartA( idP, $IdA, $IdB, ~kAP ), Random1( ~RA ), In( <RB, Text1> ),
+   Fr( ~Text2 )
+   ]
+  --[ ASendMsgP( idP, $IdA, $IdB, ~kAP, ~RA, RB, $IdB, ~Text2 ) ]->
+   [
+   Out( <~RA, RB, $IdB, ~Text2> ),
+   Step1A( idP, $IdA, $IdB, ~kAP, ~RA, RB, ~Text2 )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleP_1:
+   [
+   StartP( idP, $IdA, $IdB, ~kAP, ~kBP ), In( <RA, RB, Text2> ),
+   Fr( ~Text3 ), Fr( ~Text4 ), Fr( ~Text5 ), Random2( ~kAB ),
+   Random3( ~n1 ), Random4( ~n2 )
+   ]
+  --[
+  PSendTokenPA( idP, $IdA, $IdB, ~kAP, ~kBP, RA, RB, $IdB, ~Text3, ~Text4,
+                ~Text5
+  )
+  ]->
+   [
+   Out( <~Text5, ~n1, ~n2, 
+         senc(~kAP, <sid1_tp_cr, RA, ~kAB, $IdB, ~Text4>, ~n1, 'ad'), 
+         senc(~kBP, <sid2_tp_cr, RB, ~kAB, $IdA, ~Text3>, ~n2, 'ad')>
+   ),
+   Step1P( idP, $IdA, $IdB, ~kAP, ~kBP, ~kAB, RA, RB ), !Key( ~kAP ),
+   !Key( ~kBP )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleA_2:
+   [
+   Step1A( idP, $IdA, $IdB, ~kAP, ~RA, RB, ~Text2 ),
+   In( <Text5, n1, n2, 
+        senc(~kAP, <sid1_tp_cr, ~RA, ~kAB, $IdB, Text4>, n1, 'ad'), tokenPB>
+   ),
+   Random5( ~RA2 ), Fr( ~Text6 ), Fr( ~Text7 ), Random6( ~n3 )
+   ]
+  --[
+  AUTO_OUT_TERM_1_0_1_1_1_1_1_1_0__RoleB_2( senc(~kAB,
+                                                 <sid3_tp_cr, ~RA2, RB, ~Text6>, ~n3, 'ad')
+  ),
+  ASendTokenAB( $IdA, $IdB, ~kAB, ~RA2, RB, ~Text6 ),
+  AStarted( idP, $IdA, $IdB, ~RA2, RB )
+  ]->
+   [
+   Out( <~Text7, n2, ~n3, tokenPB, 
+         senc(~kAB, <sid3_tp_cr, ~RA2, RB, ~Text6>, ~n3, 'ad')>
+   ),
+   Step2A( idP, $IdA, $IdB, ~kAP, ~kAB, ~RA2, RB, ~Text2, ~Text6 ),
+   !Key( ~kAB )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleB_2:
+   [
+   Step1B( idP, $IdA, $IdB, ~kBP, ~RB ),
+   In( <Text3, n2, n3, 
+        senc(~kBP, <sid2_tp_cr, ~RB, ~kAB, $IdB, Text4>, n2, 'ad'), 
+        senc(~kAB, <sid3_tp_cr, RA2, ~RB, Text6>, n3, 'ad')>
+   ),
+   Fr( ~Text8 ), Fr( ~Text9 ), Random7( ~n4 )
+   ]
+  --[
+  AUTO_IN_TERM_1_0_1_1_1_1_1_1_0__RoleB_2( senc(~kAB,
+                                                <sid3_tp_cr, RA2, ~RB, Text6>, n3, 'ad'),
+                                           RA2
+  ),
+  BRecvTokenAB( $IdA, $IdB, ~kAB, RA2, ~RB, Text6 ),
+  BSendTokenBA( $IdA, $IdB, ~kAB, RA2, ~RB, ~Text8 ),
+  BEnded( idP, $IdA, $IdB, RA2, ~RB )
+  ]->
+   [
+   Out( <~Text9, ~n4, senc(~kAB, <sid4_tp_cr, RA2, ~Text8>, ~n4, 'ad')> ),
+   !Key( ~kAB )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RoleA_3:
+   [
+   Step2A( idP, $IdA, $IdB, ~kAP, kAB, ~RA2, RB, ~Text2, ~Text6 ),
+   In( <Text9, n4, senc(kAB, <sid4_tp_cr, ~RA2, $IdB, Text8>, n4, 'ad')> )
+   ]
+  --[
+  ARecvTokenBA( $IdA, $IdB, kAB, ~RA2, RB, Text8 ),
+  AEnded( idP, $IdA, $IdB, ~RA2, RB )
+  ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma noReuse [reuse]:
+  all-traces
+  "∀ x #i. (LReuse( x ) @ #i) ⇒ (∃ #r. (!KU( x ) @ #r) ∧ (#r < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #i. (LReuse( x ) @ #i) ∧ ∀ #r. (!KU( x ) @ #r) ⇒ ¬(#r < #i)"
+*/
+by sorry
+
+lemma agree_a [heuristic={agreea}]:
+  all-traces
+  "∀ p ida idb ra rb #i.
+    (AEnded( p, ida, idb, ra, rb ) @ #i) ⇒
+    ((((∃ #j.
+         ((BEnded( p, ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∧
+         (¬(∃ p2 ida2 idb2 #i2.
+             (AEnded( p2, ida2, idb2, ra, rb ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+       (∃ #r. RevLtk( ida ) @ #r)) ∨
+      (∃ #r. RevLtk( p ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ p ida idb ra rb #i.
+  (AEnded( p, ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j.
+    (BEnded( p, ida, idb, ra, rb ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ p2 ida2 idb2 #i2.
+       (AEnded( p2, ida2, idb2, ra, rb ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( p ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step2A( idP, $IdA, $IdB, ~kAP, kAB, ~RA2, rb, ~Text2, ~Text6
+       ) ▶₀ #i )
+  case RoleA_2
+  solve( !KU( senc(~kAP, <sid1_tp_cr, ~RA, ~kAB, $IdB, Text4>, n1, 'ad')
+         ) @ #vk.12 )
+    case RoleP_1_case_1
+    solve( !KU( senc(~kAB, <sid4_tp_cr, ~RA2, $IdB, Text8>, n4, 'ad')
+           ) @ #vk.5 )
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.28 )
+        case RoleP_1_case_1
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kAP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case RoleP_1_case_2
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kBP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case RoleP_1_case_2
+    solve( !KU( senc(~kAB, <sid4_tp_cr, ~RA2, $IdB, Text8>, n4, 'ad')
+           ) @ #vk.5 )
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.28 )
+        case RoleP_1_case_1
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kAP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case RoleP_1_case_2
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kBP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case c_senc
+    solve( !KU( ~kAP ) @ #vk.23 )
+      case RevLtk_case_1
+      by contradiction /* from formulas */
+    next
+      case RevLtk_case_2
+      by contradiction /* from formulas */
+    next
+      case nonce_reuse_1_case_1
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_2
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_3
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_4
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_5
+      by contradiction /* cyclic */
+    qed
+  qed
+qed
+
+lemma agree_b [heuristic={agreeb}]:
+  all-traces
+  "∀ p ida idb ra rb #i.
+    (BEnded( p, ida, idb, ra, rb ) @ #i) ⇒
+    ((((∃ #j.
+         ((AStarted( p, ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∧
+         (¬(∃ p2 ida2 idb2 #i2.
+             (BEnded( p2, ida2, idb2, ra, rb ) @ #i2) ∧ (¬(#i = #i2))))) ∨
+       (∃ #r. RevLtk( ida ) @ #r)) ∨
+      (∃ #r. RevLtk( p ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ p ida idb ra rb #i.
+  (BEnded( p, ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j.
+    (AStarted( p, ida, idb, ra, rb ) @ #j)
+   ⇒
+    ((¬(#j < #i)) ∨
+     (∃ p2 ida2 idb2 #i2.
+       (BEnded( p2, ida2, idb2, ra, rb ) @ #i2) ∧ ¬(#i = #i2)))) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( p ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( !KU( senc(~kBP, <sid2_tp_cr, ~RB, ~kAB, $IdB, Text4>, n2, 'ad')
+       ) @ #vk.7 )
+  case RoleP_1_case_1
+  solve( Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ▶₀ #i )
+    case RoleB_1
+    solve( Random7( ~n4 ) ▶₄ #i )
+      case GenRandom7
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          solve( !KU( senc(~kBP.1, <sid2_tp_cr, ~RB, ~kAB.1, $IdB, Text4.1>, n2.2,
+                           'ad')
+                 ) @ #vk.36 )
+            case RoleP_1_case_1
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              solve( Step1B( idP, $IdA.1, $IdA, ~kBP, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            next
+              case case_2
+              solve( Step1B( idP, $IdA.1, $IdA, ~kBP, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            qed
+          next
+            case RoleP_1_case_2
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          next
+            case c_senc
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          qed
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case MisGenerateRandoms
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          solve( !KU( senc(~kBP.1, <sid2_tp_cr, ~RB, ~kAB.1, $IdB, Text4.1>, n2.2,
+                           'ad')
+                 ) @ #vk.36 )
+            case RoleP_1_case_1
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              solve( Step1B( idP, $IdA.1, $IdA, ~kBP, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            next
+              case case_2
+              solve( Step1B( idP, $IdA.1, $IdA, ~kBP, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            qed
+          next
+            case RoleP_1_case_2
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          next
+            case c_senc
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          qed
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case RoleP_1_case_2
+  solve( Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ▶₀ #i )
+    case RoleB_1
+    solve( Random7( ~n4 ) ▶₄ #i )
+      case GenRandom7
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          solve( !KU( senc(~kBP.1, <sid2_tp_cr, ~RB, ~kAB.1, $IdB, Text4.1>, n2.2,
+                           'ad')
+                 ) @ #vk.36 )
+            case RoleP_1_case_1
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          next
+            case RoleP_1_case_2
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            next
+              case case_2
+              solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            qed
+          next
+            case c_senc
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          qed
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case MisGenerateRandoms
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          solve( !KU( senc(~kBP.1, <sid2_tp_cr, ~RB, ~kAB.1, $IdB, Text4.1>, n2.2,
+                           'ad')
+                 ) @ #vk.36 )
+            case RoleP_1_case_1
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          next
+            case RoleP_1_case_2
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            next
+              case case_2
+              solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+                case RoleB_1
+                by contradiction /* cyclic */
+              qed
+            qed
+          next
+            case c_senc
+            solve( (#i < #i2)  ∥ (#i2 < #i) )
+              case case_1
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            next
+              case case_2
+              by solve( Step1B( idP, $IdA.1, $IdB, ~kBP.1, ~RB ) ▶₀ #i2 )
+            qed
+          qed
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case c_senc
+  solve( Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ▶₀ #i )
+    case RoleB_1
+    solve( Random7( ~n4 ) ▶₄ #i )
+      case GenRandom7
+      solve( !KU( ~kBP ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_4
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_5
+        by contradiction /* cyclic */
+      qed
+    next
+      case MisGenerateRandoms
+      solve( !KU( ~kBP ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_4
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_5
+        by contradiction /* cyclic */
+      qed
+    qed
+  qed
+qed
+
+lemma noninj_agree_a [heuristic={agreea}]:
+  all-traces
+  "∀ p ida idb ra rb #i.
+    (AEnded( p, ida, idb, ra, rb ) @ #i) ⇒
+    ((((∃ #j. (BEnded( p, ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∨
+       (∃ #r. RevLtk( ida ) @ #r)) ∨
+      (∃ #r. RevLtk( p ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ p ida idb ra rb #i.
+  (AEnded( p, ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j. (BEnded( p, ida, idb, ra, rb ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( p ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( Step2A( idP, $IdA, $IdB, ~kAP, kAB, ~RA2, rb, ~Text2, ~Text6
+       ) ▶₀ #i )
+  case RoleA_2
+  solve( !KU( senc(~kAP, <sid1_tp_cr, ~RA, ~kAB, $IdB, Text4>, n1, 'ad')
+         ) @ #vk.12 )
+    case RoleP_1_case_1
+    solve( !KU( senc(~kAB, <sid4_tp_cr, ~RA2, $IdB, Text8>, n4, 'ad')
+           ) @ #vk.5 )
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.28 )
+        case RoleP_1_case_1
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kAP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case RoleP_1_case_2
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kBP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case RoleP_1_case_2
+    solve( !KU( senc(~kAB, <sid4_tp_cr, ~RA2, $IdB, Text8>, n4, 'ad')
+           ) @ #vk.5 )
+      case c_senc
+      solve( !KU( ~kAB ) @ #vk.28 )
+        case RoleP_1_case_1
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kAP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kAP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case RoleP_1_case_2
+        solve( !KU( ~RA2 ) @ #vk.33 )
+          case RoleA_2
+          solve( !KU( ~kBP ) @ #vk.35 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_1
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleB_2_case_2
+          solve( !KU( ~kBP ) @ #vk.36 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case c_senc
+    solve( !KU( ~kAP ) @ #vk.23 )
+      case RevLtk_case_1
+      by contradiction /* from formulas */
+    next
+      case RevLtk_case_2
+      by contradiction /* from formulas */
+    next
+      case nonce_reuse_1_case_1
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_2
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_3
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_4
+      by contradiction /* cyclic */
+    next
+      case nonce_reuse_1_case_5
+      by contradiction /* cyclic */
+    qed
+  qed
+qed
+
+lemma noninj_agree_b [heuristic={agreeb}]:
+  all-traces
+  "∀ p ida idb ra rb #i.
+    (BEnded( p, ida, idb, ra, rb ) @ #i) ⇒
+    ((((∃ #j. (AStarted( p, ida, idb, ra, rb ) @ #j) ∧ (#j < #i)) ∨
+       (∃ #r. RevLtk( ida ) @ #r)) ∨
+      (∃ #r. RevLtk( p ) @ #r)) ∨
+     (∃ #r. RevLtk( idb ) @ #r))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ p ida idb ra rb #i.
+  (BEnded( p, ida, idb, ra, rb ) @ #i)
+ ∧
+  (∀ #j. (AStarted( p, ida, idb, ra, rb ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #r. (RevLtk( ida ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( p ) @ #r) ⇒ ⊥) ∧
+  (∀ #r. (RevLtk( idb ) @ #r) ⇒ ⊥)"
+*/
+simplify
+solve( !KU( senc(~kBP, <sid2_tp_cr, ~RB, ~kAB, $IdB, Text4>, n2, 'ad')
+       ) @ #vk.7 )
+  case RoleP_1_case_1
+  solve( Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ▶₀ #i )
+    case RoleB_1
+    solve( Random7( ~n4 ) ▶₄ #i )
+      case GenRandom7
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          by contradiction /* from formulas */
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case MisGenerateRandoms
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          by contradiction /* from formulas */
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case RoleP_1_case_2
+  solve( Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ▶₀ #i )
+    case RoleB_1
+    solve( Random7( ~n4 ) ▶₄ #i )
+      case GenRandom7
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          by contradiction /* from formulas */
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_5
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_5
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case MisGenerateRandoms
+      solve( !KU( senc(~kAB, <sid3_tp_cr, ra, ~RB, Text6>, n3, 'ad')
+             ) @ #vk.8 )
+        case RoleA_2
+        solve( !KU( senc(~kAP.1, <sid1_tp_cr, ~RA.1, ~kAB, $IdB, Text4.1>, n1.1,
+                         'ad')
+               ) @ #vk.27 )
+          case RoleP_1
+          by contradiction /* from formulas */
+        next
+          case c_senc
+          solve( !KU( ~kAP.1 ) @ #vk.34 )
+            case RevLtk_case_1
+            solve( !KU( ~kAB ) @ #vk.41 )
+              case RoleP_1_case_1
+              solve( !KU( ~kAP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case RoleP_1_case_2
+              solve( !KU( ~kBP ) @ #vk.43 )
+                case RevLtk_case_1
+                by contradiction /* from formulas */
+              next
+                case RevLtk_case_2
+                by contradiction /* from formulas */
+              next
+                case nonce_reuse_1_case_1
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_2
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_3
+                by contradiction /* cyclic */
+              next
+                case nonce_reuse_1_case_4
+                by contradiction /* cyclic */
+              qed
+            next
+              case nonce_reuse_1_case_1
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_2
+              by contradiction /* cyclic */
+            next
+              case nonce_reuse_1_case_3
+              by contradiction /* cyclic */
+            qed
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        qed
+      next
+        case c_senc
+        solve( !KU( ~kAB ) @ #vk.19 )
+          case RoleP_1_case_1
+          solve( !KU( ~kAP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case RoleP_1_case_2
+          solve( !KU( ~kBP ) @ #vk.26 )
+            case RevLtk_case_1
+            by contradiction /* from formulas */
+          next
+            case RevLtk_case_2
+            by contradiction /* from formulas */
+          next
+            case nonce_reuse_1_case_1
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_2
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_3
+            by contradiction /* cyclic */
+          next
+            case nonce_reuse_1_case_4
+            by contradiction /* cyclic */
+          qed
+        next
+          case nonce_reuse_1_case_1
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_2
+          by contradiction /* cyclic */
+        next
+          case nonce_reuse_1_case_3
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case c_senc
+  solve( Step1B( idP, $IdA, $IdB, ~kBP, ~RB ) ▶₀ #i )
+    case RoleB_1
+    solve( Random7( ~n4 ) ▶₄ #i )
+      case GenRandom7
+      solve( !KU( ~kBP ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_4
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_5
+        by contradiction /* cyclic */
+      qed
+    next
+      case MisGenerateRandoms
+      solve( !KU( ~kBP ) @ #vk.9 )
+        case RevLtk_case_1
+        by contradiction /* from formulas */
+      next
+        case RevLtk_case_2
+        by contradiction /* from formulas */
+      next
+        case nonce_reuse_1_case_1
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_2
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_3
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_4
+        by contradiction /* cyclic */
+      next
+        case nonce_reuse_1_case_5
+        by contradiction /* cyclic */
+      qed
+    qed
+  qed
+qed
+
+lemma AUTO_typing [sources, heuristic={provesources}]:
+  all-traces
+  "(⊤) ∧
+   (∀ x m #i.
+     (AUTO_IN_TERM_1_0_1_1_1_1_1_1_0__RoleB_2( m, x ) @ #i) ⇒
+     ((∃ #j. (!KU( x ) @ #j) ∧ (#j < #i)) ∨
+      (∃ #j.
+        (AUTO_OUT_TERM_1_0_1_1_1_1_1_1_0__RoleB_2( m ) @ #j) ∧ (#j < #i))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x m #i.
+  (AUTO_IN_TERM_1_0_1_1_1_1_1_1_0__RoleB_2( m, x ) @ #i)
+ ∧
+  (∀ #j. (!KU( x ) @ #j) ⇒ ¬(#j < #i)) ∧
+  (∀ #j.
+    (AUTO_OUT_TERM_1_0_1_1_1_1_1_1_0__RoleB_2( m ) @ #j) ⇒ ¬(#j < #i))"
+*/
+by sorry
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+WARNING: the following wellformedness checks failed!
+
+Message Derivation Checks
+=========================
+
+  The variables of the following rule(s) are not derivable from their premises, you may be performing unintended pattern matching.
+
+Rule nonce_reuse_1: 
+Failed to derive Variable(s): ad, m, m2, n
+*/
+
+/*
+Generated from:
+Tamarin version 1.10.0
+Maude version 3.3
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-10-31 23:24:32.438948345 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: 979826_reuse_once_3_7.spthy
+
+  processing time: 53.95s  
+  WARNING: 1 wellformedness check failed!
+           The analysis results might be wrong!
+  
+  noReuse (all-traces): analysis incomplete (1 steps)
+  agree_a (all-traces): verified (129 steps)
+  agree_b (all-traces): verified (258 steps)
+  noninj_agree_a (all-traces): verified (129 steps)
+  noninj_agree_b (all-traces): verified (214 steps)
+  AUTO_typing (all-traces): analysis incomplete (1 steps)
+
+==============================================================================
